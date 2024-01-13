@@ -20,7 +20,7 @@ public class MapGenerator : MonoBehaviour {
 
 
 	/// <summary>
-	/// Funcion principal que genera el mapa y su visualizacion
+	/// Funcion principal que genera el mapa y llama a su visualizacion
 	/// </summary>
 	[ExecuteAlways]
 	public void GenerateMap()
@@ -30,8 +30,8 @@ public class MapGenerator : MonoBehaviour {
 
         float[,] noiseMap = Noise.GenerateNoiseMap(MapWidth, MapHeight, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
 
-		NoiseMapView display = FindObjectOfType<NoiseMapView> ();
-		display.DrawNoiseMap (noiseMap);
+		MapView display = FindObjectOfType<MapView>();
+		display.DrawMap(noiseMap);
 	}
 
     private void OnValidate()
