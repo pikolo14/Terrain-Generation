@@ -14,8 +14,13 @@ public class MapGeneratorEditor : Editor {
 			}
 		}
 
-		if (GUILayout.Button ("Generate")) {
-			mapGen.GenerateMap ();
+		if (GUILayout.Button ("Regenerate")) {
+			mapGen.GenerateMap (false);
 		}
-	}
+
+        if (GUILayout.Button("Generate new seed"))
+        {
+            mapGen.GenerateMap(true);
+        }
+    }
 }

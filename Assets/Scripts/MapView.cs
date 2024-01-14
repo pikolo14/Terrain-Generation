@@ -14,11 +14,11 @@ public class MapView : MonoBehaviour
         Mesh
     }
 
+    public DrawMode Mode = DrawMode.Mesh;
 	public Renderer TextureRender;
     public MeshFilter MeshFilter;
     public MeshRenderer MeshRenderer;
 
-    public DrawMode Mode = DrawMode.Mesh;
 	public Gradient HeightGradient;
 	public UnityEvent OnViewParametersChanged = new UnityEvent();
 
@@ -27,7 +27,7 @@ public class MapView : MonoBehaviour
 	/// Actualiza la visualizacion del mapa introducido
 	/// </summary>
 	/// <param name="heightMap"></param>
-	public void DrawMap(float[,] heightMap, float heightMultiplier)
+	public void DrawMap(float[,] heightMap, float heightMultiplier, AnimationCurve terrainHeightCurve)
 	{
         //Generate texture
         Color[] colorArray = GetColorArray(heightMap, Mode, HeightGradient);
@@ -35,7 +35,7 @@ public class MapView : MonoBehaviour
 
         //Draw 3D mesh or plane texture
         if (Mode == DrawMode.Mesh)
-            DrawMeshMap(heightMap, texture, heightMultiplier);
+            DrawMeshMap(heightMap, texture, heightMultiplier, terrainHeightCurve);
         else
             DrawTexture(texture);
 	}
@@ -43,9 +43,9 @@ public class MapView : MonoBehaviour
     
     #region MESH GENERATION
 
-    public void DrawMeshMap(float[,] heightMap, Texture2D texture, float heightMultiplier)
+    public void DrawMeshMap(float[,] heightMap, Texture2D texture, float heightMultiplier, AnimationCurve terrainHeightCurve)
     {
-        MeshData meshData = MeshGeneration.GenerateTerrainMesh(heightMap, heightMultiplier);
+        MeshData meshData = MeshGeneration.GenerateTerrainMesh(heightMap, heightMultiplier, terrainHeightCurve);
         MeshFilter.sharedMesh = meshData.GetMesh();
         MeshRenderer.sharedMaterial.mainTexture = texture;
     }

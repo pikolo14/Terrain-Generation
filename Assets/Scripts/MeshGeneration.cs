@@ -4,12 +4,12 @@ using UnityEngine;
 
 public static class MeshGeneration
 {
-    public static MeshData GenerateTerrainMesh(float[,] heightMap, float heightMultiplier)
+    public static MeshData GenerateTerrainMesh(float[,] heightMap, float heightMultiplier, AnimationCurve heightCurve)
     {
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
-        float xOffset = -(width - 1) / 2f;
-        float yOffset = (height - 1) / 2f;
+        float midWidth = (width - 1) / 2f;
+        float midHeight = (height - 1) / 2f;
 
         MeshData meshData = new MeshData(width, height);
 
@@ -19,7 +19,7 @@ public static class MeshGeneration
             for (int x = 0; x < width; x++,vertexId++)
             {
                 //Asignamos la posicion de los vertices segun las coordenadas X Y y el mapa de altura (lo ponemos en horizontal, siendo Y la altura ahora)
-                meshData.Vertices[vertexId] = new Vector3(x, heightMap[x,y] * heightMultiplier, y);
+                meshData.Vertices[vertexId] = new Vector3(x - midWidth, heightCurve.Evaluate(heightMap[x,y])*heightMultiplier, y - midHeight);
                 //Asignamos las UVs de cada vector
                 meshData.UVs[vertexId] = new Vector2(x/(float)width, y/(float)height);
 
