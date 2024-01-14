@@ -6,6 +6,7 @@ public class MapGenerator : MonoBehaviour {
 	public int MapWidth = 100;
 	public int MapHeight = 100;
 	public float NoiseScale = 10;
+	public float HeightMultiplier = 1;
 
 	[Range(1,10)]
 	public int Octaves = 3;
@@ -31,7 +32,7 @@ public class MapGenerator : MonoBehaviour {
         float[,] noiseMap = Noise.GenerateNoiseMap(MapWidth, MapHeight, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
 
 		MapView display = FindObjectOfType<MapView>();
-		display.DrawMap(noiseMap);
+		display.DrawMap(noiseMap, HeightMultiplier);
 	}
 
     private void OnValidate()
