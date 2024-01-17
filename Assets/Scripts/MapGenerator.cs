@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.Events;
 
 public class MapGenerator : MonoBehaviour {
 
@@ -21,6 +22,8 @@ public class MapGenerator : MonoBehaviour {
 	public bool AutoUpdate;
 	private int _currentSeed;
 
+	public UnityEvent OnGenerate = new UnityEvent();
+
 
 	/// <summary>
 	/// Funcion principal que genera el mapa y llama a su visualizacion
@@ -35,6 +38,8 @@ public class MapGenerator : MonoBehaviour {
 
 		MapView display = FindObjectOfType<MapView>();
 		display.DrawMap(noiseMap, HeightMultiplier, TerrainHeightCurve);
+
+		OnGenerate.Invoke();
 	}
 
     private void OnValidate()

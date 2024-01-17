@@ -76,7 +76,7 @@ public static class PointsGeneration
 
         for (int i = 0; i < points.Count; i++)
         {
-            points[i] += new Vector2(origin.x, origin.z) - zoneSize/2f;
+            points[i] += new Vector2(origin.x, origin.y) - zoneSize/2f;
         }
 
         return points;

@@ -48,6 +48,10 @@ public class MapView : MonoBehaviour
         MeshData meshData = MeshGeneration.GenerateTerrainMesh(heightMap, heightMultiplier, terrainHeightCurve);
         MeshFilter.sharedMesh = meshData.GetMesh();
         MeshRenderer.sharedMaterial.mainTexture = texture;
+        MeshCollider collider = MeshRenderer.gameObject.GetComponent<MeshCollider>();
+        if(!collider)
+            collider = MeshRenderer.gameObject.AddComponent<MeshCollider>();
+        collider.sharedMesh = meshData.GetMesh();
     }
 
     #endregion

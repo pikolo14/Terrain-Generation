@@ -5,7 +5,8 @@ using UnityEngine;
 public class NodePointsGenerator : MonoBehaviour
 {
     public float DistanceRadius = 1;
-    public MapGenerator Map;
+    private MapGenerator _mapGenerator;
+    private MapView _mapView;
     public GameObject NodePointPrefab;
     public float HeightOffset = 1;
     public GameObject[] Nodes;
@@ -17,15 +18,19 @@ public class NodePointsGenerator : MonoBehaviour
     [ExecuteAlways]
     public void GenerateNodePoints()
     {
+        if(!_mapView)
+            _mapView = FindObjectOfType<MapView>();
+        if(!_mapGenerator)
+            _mapGenerator = FindObjectOfType<MapGenerator>();
         if (AutoResetSeed)
             _currentSeed = System.DateTime.Now.Millisecond;
 
         EraseAllNodePoints();
 
-        Vector2 zoneSize = new Vector2(Map.MapWidth, Map.MapHeight);
-        List<Vector2> nodePoints = PointsGeneration.GeneratePoissonDiscPoints(DistanceRadius, Map.transform.position, zoneSize, _currentSeed);
+        Vector2 zoneSize = new Vector2(_mapGenerator.MapWidth, _mapGenerator.MapHeight);
+        List<Vector2> nodePoints = PointsGeneration.GeneratePoissonDiscPoints(DistanceRadius, _mapView.transform.position, zoneSize, _currentSeed);
         Nodes = new GameObject[nodePoints.Count];
-        float height = HeightOffset + Map.transform.position.y;
+        float height = HeightOffset + _mapGenerator.transform.position.y;
 
         for (int i = 0; i < nodePoints.Count; i++)
         {
