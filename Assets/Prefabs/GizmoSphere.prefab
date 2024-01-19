@@ -44,6 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7edf0851e2d7c5b4cafa9a19a4b8fef0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sphereRadius: 2
+  sphereRadius: 1
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   selectedColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
