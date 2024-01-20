@@ -6,7 +6,8 @@ using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
-public class NodePointsGenerator : MonoBehaviour
+
+public class NodePointsAndPathsGenerator : MonoBehaviour
 {
     [Serializable]
     public struct NodePoint
@@ -19,6 +20,26 @@ public class NodePointsGenerator : MonoBehaviour
             Position2D = position2D;
             GO = gO;
         }
+
+        public static bool operator ==(NodePoint obj1, NodePoint obj2)
+        {
+            if (ReferenceEquals(obj1, obj2))
+                return true;
+            if (ReferenceEquals(obj1, null))
+                return false;
+            if (ReferenceEquals(obj2, null))
+                return false;
+            return obj1.Equals(obj2);
+        }
+        public static bool operator !=(NodePoint obj1, NodePoint obj2) => !(obj1 == obj2);
+        public bool Equals(NodePoint other)
+        {
+            if (ReferenceEquals(other, null))
+                return false;
+            if (ReferenceEquals(this, other))
+                return true;
+            return this.Position2D == other.Position2D;
+        }
     }
 
     [Serializable]
@@ -28,23 +49,25 @@ public class NodePointsGenerator : MonoBehaviour
         public LineRenderer Line;
     }
 
-    [Serialize]
-    private List<NodePoint> _nodePoints;
-    [Serialize]
-    private List<NodePath> _nodePaths;
+    public List<NodePoint> _nodePoints;
+    public List<NodePath> _nodePaths;
 
-    public float DistanceRadius = 1;
-    private MapGenerator _mapGenerator;
-    private MapView _mapView;
     public GameObject NodePointPrefab;
     public GameObject NodePathPrefab;
-    public float HeightOffset = 1;
+    [Serialize]
+    private MapGenerator _mapGenerator;
+    [Serialize]
+    private MapView _mapView;
 
+    [Header("Generation params")]
+    [Tooltip("Distancia mínima que debe de haber entre los puntos de nodo")]
+    public float DistanceRadius = 1;
+    [Tooltip("Rango de altura (entre 0 y 1) en los que se puede colocar un punto de nodo")]
+    public Vector2 PointHeightRange = new Vector2(0.05f, 0.8f);
+    [Tooltip("Cuantas veces más larga que la media puede ser una arista válida para formar un camino")]
+    public float MaxEdgeProp = 0.6f;
     public bool AutoResetSeed = true;
     private int _currentSeed;
-
-    public MeshFilter DebugTrianglesMesh;
-    public float MaxEdgeProp = 0.6f;
 
 
     [ExecuteAlways]
@@ -60,7 +83,7 @@ public class NodePointsGenerator : MonoBehaviour
 
     public void GenerateNodePoints(Vector2 zoneSize)
     {
-        EraseAllNodePoints();
+        RemoveAllNodePoints();
 
         _nodePoints = new List<NodePoint>();
         List<Vector2> points = PointsGeneration.GeneratePoissonDiscPoints(DistanceRadius, _mapView.transform.position, zoneSize, _currentSeed);
@@ -71,9 +94,13 @@ public class NodePointsGenerator : MonoBehaviour
             RaycastHit hit;
             if (Physics.Raycast(new Vector3(point.x, 100, point.y), Vector3.down, out hit))
             {
-                GameObject nodeGO = Instantiate(NodePointPrefab, transform);
-                nodeGO.transform.position = hit.point;
-                _nodePoints.Add(new NodePoint(point, nodeGO));
+                //Comprobamos que el punto generado esté en el rango deseado de altura
+                if(IsCorrectHeight(hit.point.y))
+                {
+                    GameObject nodeGO = Instantiate(NodePointPrefab, transform);
+                    nodeGO.transform.position = hit.point;
+                    _nodePoints.Add(new NodePoint(point, nodeGO));
+                }
             }
         }
     }
@@ -94,20 +121,38 @@ public class NodePointsGenerator : MonoBehaviour
         foreach (var edge in edges)
         {
             NodePath path = new NodePath();
-            path.P1 = GetPointInPosition(edge.v.position.ToVector2());
-            path.P2 = GetPointInPosition(edge.prevEdge.v.position.ToVector2());
+            path.P1 = GetNodePointInPosition(edge.v.position.ToVector2());
+            path.P2 = GetNodePointInPosition(edge.prevEdge.v.position.ToVector2());
 
-            Vector3 p1 = path.P1.GO.transform.position;
-            Vector3 p2 = path.P2.GO.transform.position;
-            var lineGO = Instantiate(NodePathPrefab, transform);
-            path.Line = lineGO.GetComponent<LineRenderer>();
-            path.Line.SetPositions(new Vector3[] { p1, p2 });
-            //TODO: Evitar paths duplicados
-            _nodePaths.Add(path);
+            //Evitar paths duplicados
+            if(!IsPathCreated(path.P1, path.P2))
+            {
+                Vector3 p1 = path.P1.GO.transform.position;
+                Vector3 p2 = path.P2.GO.transform.position;
+                var lineGO = Instantiate(NodePathPrefab, transform);
+                path.Line = lineGO.GetComponent<LineRenderer>();
+                path.Line.SetPositions(new Vector3[] { p1, p2 });
+                _nodePaths.Add(path);
+            }
         }
     }
 
-    private NodePoint GetPointInPosition(Vector2 position)
+    private bool IsCorrectHeight(float height)
+    {
+        return _mapGenerator.IsHeightInRange(height, PointHeightRange);
+    }
+
+    private bool IsPathCreated(NodePoint p1, NodePoint p2)
+    {
+        foreach(var path in _nodePaths)
+        {
+            if ((p1 == path.P1 || p1 == path.P2) && (p2 == path.P1 || p2 == path.P2))
+                return true;
+        }
+        return false;
+    }
+
+    private NodePoint GetNodePointInPosition(Vector2 position)
     {
         foreach(var point in _nodePoints)
         {
@@ -118,7 +163,7 @@ public class NodePointsGenerator : MonoBehaviour
         return default(NodePoint);
     }
 
-    private void EraseAllNodePoints()
+    private void RemoveAllNodePoints()
     {
         if(_nodePoints != null)
         {

@@ -2,8 +2,11 @@
 using System.Collections;
 using UnityEngine.Events;
 
-public class MapGenerator : MonoBehaviour {
-
+public class MapGenerator : MonoBehaviour 
+{
+    [SerializeField]
+	private MapView _mapView;
+	
 	public int MapWidth = 100;
 	public int MapHeight = 100;
 	public float NoiseScale = 10;
@@ -36,14 +39,21 @@ public class MapGenerator : MonoBehaviour {
 
         float[,] noiseMap = Noise.GenerateNoiseMap(MapWidth, MapHeight, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
 
-		MapView display = FindObjectOfType<MapView>();
-		display.DrawMap(noiseMap, HeightMultiplier, TerrainHeightCurve);
+		_mapView.DrawMap(noiseMap, HeightMultiplier, TerrainHeightCurve);
 
 		OnGenerate.Invoke();
 	}
 
+	public bool IsHeightInRange(float realHeight, Vector2 heightRangeProp)
+    {
+		Vector2 realHeightRange = heightRangeProp * HeightMultiplier + new Vector2(_mapView.transform.position.y, _mapView.transform.position.y);
+		return (realHeight > realHeightRange.x && realHeight < realHeightRange.y);
+    }
+
     private void OnValidate()
     {
+		if(!_mapView)
+			_mapView = FindAnyObjectByType<MapView>();
         MapWidth = Mathf.Abs (MapWidth);
         MapHeight = Mathf.Abs (MapHeight);
     }
