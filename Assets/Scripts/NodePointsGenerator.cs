@@ -8,81 +8,150 @@ using UnityEngine;
 
 public class NodePointsGenerator : MonoBehaviour
 {
+    [Serializable]
+    public struct NodePoint
+    {
+        public Vector2 Position2D;
+        public GameObject GO;
+
+        public NodePoint(Vector2 position2D, GameObject gO)
+        {
+            Position2D = position2D;
+            GO = gO;
+        }
+    }
+
+    [Serializable]
+    public struct NodePath
+    {
+        public NodePoint P1, P2;
+        public LineRenderer Line;
+    }
+
+    [Serialize]
+    private List<NodePoint> _nodePoints;
+    [Serialize]
+    private List<NodePath> _nodePaths;
+
     public float DistanceRadius = 1;
     private MapGenerator _mapGenerator;
     private MapView _mapView;
     public GameObject NodePointPrefab;
+    public GameObject NodePathPrefab;
     public float HeightOffset = 1;
-    public List<GameObject> Nodes;
 
     public bool AutoResetSeed = true;
     private int _currentSeed;
 
     public MeshFilter DebugTrianglesMesh;
+    public float MaxEdgeProp = 0.6f;
 
 
     [ExecuteAlways]
-    public void GenerateNodePoints()
+    public void GenerateNodePointsAndPaths()
     {
         if (AutoResetSeed)
             _currentSeed = System.DateTime.Now.Millisecond;
 
+        Vector2 zoneSize = new Vector2(_mapGenerator.MapWidth, _mapGenerator.MapHeight);
+        GenerateNodePoints(zoneSize);
+        GenerateNodePaths();
+    }
+
+    public void GenerateNodePoints(Vector2 zoneSize)
+    {
         EraseAllNodePoints();
 
-        Vector2 zoneSize = new Vector2(_mapGenerator.MapWidth, _mapGenerator.MapHeight);
-        List<Vector2> nodePoints = PointsGeneration.GeneratePoissonDiscPoints(DistanceRadius, _mapView.transform.position, zoneSize, _currentSeed);
-        Nodes = new List<GameObject>();
+        _nodePoints = new List<NodePoint>();
+        List<Vector2> points = PointsGeneration.GeneratePoissonDiscPoints(DistanceRadius, _mapView.transform.position, zoneSize, _currentSeed);
 
-        float height = HeightOffset + _mapGenerator.transform.position.y;
-
-        ////Colocamos los puntos a una altura fija formando un plano sobre el terreno
-        //for (int i = 0; i < nodePoints.Count; i++)
-        //{
-        //    Vector2 point = nodePoints[i];
-        //    GameObject nodeGO = Instantiate(NodePointPrefab, transform);
-        //    nodeGO.transform.position = new Vector3(point.x, height, point.y);
-        //    Nodes.Add(nodeGO);
-        //}
-
-        //Hacemos un Raycast sobre el terreno para obtener la ubicacion de los nodos pegados a la tierra
-        //TODO: Mejorar método para que los puntos en los límites colisionen con en el terreno
-        for (int i = 0; i < nodePoints.Count; i++)
+        foreach(var point in points)
         {
-            var point = nodePoints[i];
+            //Hacemos un Raycast sobre el terreno para obtener la ubicacion de los nodos pegados a la tierra
             RaycastHit hit;
-
             if (Physics.Raycast(new Vector3(point.x, 100, point.y), Vector3.down, out hit))
             {
                 GameObject nodeGO = Instantiate(NodePointPrefab, transform);
-                nodeGO.name = "NodePoint " + i;
                 nodeGO.transform.position = hit.point;
-                Nodes.Add(nodeGO);
+                _nodePoints.Add(new NodePoint(point, nodeGO));
             }
         }
-
-        //Obtenemos una malla con la triangulacion de Delaunay de Habrador
-        GenerateDelaunayTriangulation(nodePoints);
-
-        //TODO: Recorrer toda la malla, identificar todos los vertices con nodepoints y obtener las relaciones entre puntos con las aristas
-        //TODO: Eliminar edges demasiado largos
     }
 
-    public void GenerateDelaunayTriangulation(List<Vector2> points)
+    public void GenerateNodePaths()
     {
-        DebugTrianglesMesh.sharedMesh = DelaunayTriangulation.GetDelaunayTriangleMesh(points);
+        RemoveAllNodePaths();
+
+        List<Vector2> NodePositions2D = new List<Vector2>();
+
+        foreach(var node in _nodePoints)
+        {
+            NodePositions2D.Add(node.Position2D);
+        }
+
+        HashSet<HalfEdge2> edges = DelaunayTriangulation.GetDelaunayMeshShorterEdges(NodePositions2D, MaxEdgeProp);
+
+        foreach (var edge in edges)
+        {
+            NodePath path = new NodePath();
+            path.P1 = GetPointInPosition(edge.v.position.ToVector2());
+            path.P2 = GetPointInPosition(edge.prevEdge.v.position.ToVector2());
+
+            Vector3 p1 = path.P1.GO.transform.position;
+            Vector3 p2 = path.P2.GO.transform.position;
+            var lineGO = Instantiate(NodePathPrefab, transform);
+            path.Line = lineGO.GetComponent<LineRenderer>();
+            path.Line.SetPositions(new Vector3[] { p1, p2 });
+            //TODO: Evitar paths duplicados
+            _nodePaths.Add(path);
+        }
+    }
+
+    private NodePoint GetPointInPosition(Vector2 position)
+    {
+        foreach(var point in _nodePoints)
+        {
+            if (point.Position2D == position)
+                return point;
+        }
+
+        return default(NodePoint);
     }
 
     private void EraseAllNodePoints()
     {
-        foreach (var node in Nodes)
+        if(_nodePoints != null)
         {
-            if(node)
+            foreach (var node in _nodePoints)
             {
-                if (Application.isPlaying)
-                    Destroy(node.gameObject);
-                else
-                    DestroyImmediate(node.gameObject);
+                if(node.GO)
+                {
+                    if (Application.isPlaying)
+                        Destroy(node.GO);
+                    else
+                        DestroyImmediate(node.GO);
+                }
             }
+
+            _nodePoints.Clear();
+        }
+    }
+
+    private void RemoveAllNodePaths()
+    {
+        if (_nodePaths != null)
+        {
+            foreach (var path in _nodePaths)
+            {
+                if (path.Line)
+                {
+                    if (Application.isPlaying)
+                        Destroy(path.Line.gameObject);
+                    else
+                        DestroyImmediate(path.Line.gameObject);
+                }
+            }
+            _nodePaths.Clear();
         }
     }
 

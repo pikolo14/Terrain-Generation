@@ -6,7 +6,16 @@ using UnityEngine;
 
 public static class DelaunayTriangulation
 {
-    public static Mesh GetDelaunayTriangleMesh(List<Vector2> points)
+    public static HashSet<HalfEdge2> GetDelaunayMeshShorterEdges(List<Vector2> points, float maxLengthProp)
+    {
+        var triangleData = GetDelaunayTriangleData2(points);
+        float averageLength = triangleData.edges.GetAverageEdgeLength();
+        float maxEdgeLength = averageLength * (1+maxLengthProp);
+        RemoveLongerEdges(ref triangleData, maxEdgeLength);
+        return triangleData.edges;
+    }
+
+    private static HalfEdgeData2 GetDelaunayTriangleData2(List<Vector2> points)
     {
         //Hull
         List<MyVector2> hullPoints_2d = points.Select(point => point.ToMyVector2()).ToList();
@@ -34,7 +43,7 @@ public static class DelaunayTriangulation
         timer.Start();
 
         //Algorithm 1. Delaunay by triangulate all points with some bad algorithm and then flip edges until we get a delaunay triangulation 
-        //HalfEdgeData2 triangleData_normalized = _Delaunay.FlippingEdges(points_2d_normalized, new HalfEdgeData2());
+        //HalfEdgeData2 triangleData_normalized = _Delaunay.FlippingEdges(hullPoints_2d_normalized.ToHashSet(), new HalfEdgeData2());
 
 
         //Algorithm 2. Delaunay by inserting point-by-point while flipping edges after inserting a single point 
@@ -51,6 +60,35 @@ public static class DelaunayTriangulation
         //UnNormalize
         HalfEdgeData2 triangleData = normalizer.UnNormalize(triangleData_normalized);
 
+        return triangleData;
+    }
+
+    private static float GetAverageEdgeLength(this HashSet<HalfEdge2> edges)
+    {
+        float sum = 0;
+
+        foreach(var edge in edges)
+        {
+            sum+=edge.Length();
+        }
+
+        return sum / edges.Count();
+    }
+
+    private static void RemoveLongerEdges(ref HalfEdgeData2 triangleData, float maxLength)
+    {
+        List<HalfEdge2> edges = new List<HalfEdge2>();
+        foreach(var edge in triangleData.edges)
+        {
+            if (edge.Length() > maxLength)
+                edges.Add(edge);
+        }
+
+        triangleData.edges.RemoveWhere(edge => edge.Length() > maxLength);
+    }
+
+    private static Mesh GetMeshFromHalfEdgeData2(HalfEdgeData2 triangleData)
+    {
         //From half-edge to triangle
         HashSet<Triangle2> triangles_2d = _TransformBetweenDataStructures.HalfEdge2ToTriangle2(triangleData);
 
@@ -68,5 +106,10 @@ public static class DelaunayTriangulation
         }
 
         return _TransformBetweenDataStructures.Triangle3ToCompressedMesh(triangles_3d);
+    }
+
+    public static float Length(this HalfEdge2 edge)
+    {
+        return MyVector2.Distance(edge.prevEdge.v.position, edge.v.position);
     }
 }

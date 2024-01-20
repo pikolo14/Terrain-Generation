@@ -13,6 +13,6 @@ public class NodePointGeneratorEditor : Editor
         DrawDefaultInspector();
 
         if(GUILayout.Button ("Generate NodePoints"))
-            nodeGen.GenerateNodePoints();
+            nodeGen.GenerateNodePointsAndPaths();
     }
 }
