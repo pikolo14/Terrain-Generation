@@ -14,11 +14,13 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
     {
         public Vector2 Position2D;
         public GameObject GO;
+        public List<NodePath> Paths;
 
         public NodePoint(Vector2 position2D, GameObject gO)
         {
             Position2D = position2D;
             GO = gO;
+            Paths = new List<NodePath>();
         }
 
         public static bool operator ==(NodePoint obj1, NodePoint obj2)
@@ -40,6 +42,8 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
                 return true;
             return this.Position2D == other.Position2D;
         }
+
+        
     }
 
     [Serializable]
@@ -47,6 +51,28 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
     {
         public NodePoint P1, P2;
         public LineRenderer Line;
+
+        public Vector2 GetDirection()
+        {
+            Vector2 direction = Vector2.zero;
+
+            if(P1!=null && P2!=null)
+                direction = P2.Position2D - P1.Position2D;
+
+            return direction;
+        }
+
+        public NodePath GetOppositePath()
+        {
+            NodePath opposite = default(NodePath);
+            //TODO: 
+            //Encontrar los paths opuestos de cada extremo y obtener sus vectores direccion
+            //El path opuesto debe de estar a mas de 90º absolutos repecto a la direccion recta inicial
+            //Calcular la posicion del modificador de cada extremo del path que siga en la tangente de los paths opuestos
+            //Poner una maginitud aleatoria ente un rango?
+            //Si no hay opuesto coger direccion aleatoria?
+            return opposite;
+        }
     }
 
     public List<NodePoint> _nodePoints;
@@ -66,6 +92,8 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
     public Vector2 PointHeightRange = new Vector2(0.05f, 0.8f);
     [Tooltip("Cuantas veces más larga que la media puede ser una arista válida para formar un camino")]
     public float MaxEdgeProp = 0.6f;
+    [Tooltip("Lejanía máxima de los puntos modificadores de la curva respecto a los puntos de extremo")]
+    public float MaxRandomCurveRadius = 1;
     public bool AutoResetSeed = true;
     private int _currentSeed;
 
@@ -74,14 +102,18 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
     public void GenerateNodePointsAndPaths()
     {
         if (AutoResetSeed)
-            _currentSeed = System.DateTime.Now.Millisecond;
+            _currentSeed = DateTime.Now.Millisecond;
+        UnityEngine.Random.InitState(_currentSeed);
 
         Vector2 zoneSize = new Vector2(_mapGenerator.MapWidth, _mapGenerator.MapHeight);
         GenerateNodePoints(zoneSize);
         GenerateNodePaths();
     }
 
-    public void GenerateNodePoints(Vector2 zoneSize)
+
+    #region NODE GENERATION
+
+    private void GenerateNodePoints(Vector2 zoneSize)
     {
         RemoveAllNodePoints();
 
@@ -105,7 +137,7 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
         }
     }
 
-    public void GenerateNodePaths()
+    private void GenerateNodePaths()
     {
         RemoveAllNodePaths();
 
@@ -127,15 +159,28 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
             //Evitar paths duplicados
             if(!IsPathCreated(path.P1, path.P2))
             {
+                //Almacenar en cada punto los paths a los que pertenece
+                path.P1.Paths.Add(path);
+                path.P2.Paths.Add(path);
+
+                //Dibujado line renderer
                 Vector3 p1 = path.P1.GO.transform.position;
                 Vector3 p2 = path.P2.GO.transform.position;
                 var lineGO = Instantiate(NodePathPrefab, transform);
                 path.Line = lineGO.GetComponent<LineRenderer>();
-                path.Line.SetPositions(new Vector3[] { p1, p2 });
+                //path.Line.SetPositions(new Vector3[] { p1, p2 });
+                Vector3[] positions = CurveGeneration.GetRandomBezierCurve(p1, p2, MaxRandomCurveRadius);
+                path.Line.positionCount = positions.Length;
+                path.Line.SetPositions(positions);
                 _nodePaths.Add(path);
             }
         }
     }
+
+    #endregion
+
+
+    #region GENERATION UTILS
 
     private bool IsCorrectHeight(float height)
     {
@@ -162,6 +207,11 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
 
         return default(NodePoint);
     }
+
+    #endregion
+
+
+    #region REMOVING NODES
 
     private void RemoveAllNodePoints()
     {
@@ -200,6 +250,11 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
         }
     }
 
+    #endregion
+
+
+    #region EDITOR
+
     private void OnValidate()
     {
         if (!_mapView)
@@ -207,4 +262,6 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
         if (!_mapGenerator)
             _mapGenerator = FindObjectOfType<MapGenerator>();
     }
+
+    #endregion
 }
