@@ -7,74 +7,8 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 
-public class NodePointsAndPathsGenerator : MonoBehaviour
+public class NodePointAndPathGenerator : MonoBehaviour
 {
-    [Serializable]
-    public struct NodePoint
-    {
-        public Vector2 Position2D;
-        public GameObject GO;
-        public List<NodePath> Paths;
-
-        public NodePoint(Vector2 position2D, GameObject gO)
-        {
-            Position2D = position2D;
-            GO = gO;
-            Paths = new List<NodePath>();
-        }
-
-        public static bool operator ==(NodePoint obj1, NodePoint obj2)
-        {
-            if (ReferenceEquals(obj1, obj2))
-                return true;
-            if (ReferenceEquals(obj1, null))
-                return false;
-            if (ReferenceEquals(obj2, null))
-                return false;
-            return obj1.Equals(obj2);
-        }
-        public static bool operator !=(NodePoint obj1, NodePoint obj2) => !(obj1 == obj2);
-        public bool Equals(NodePoint other)
-        {
-            if (ReferenceEquals(other, null))
-                return false;
-            if (ReferenceEquals(this, other))
-                return true;
-            return this.Position2D == other.Position2D;
-        }
-
-        
-    }
-
-    [Serializable]
-    public struct NodePath
-    {
-        public NodePoint P1, P2;
-        public LineRenderer Line;
-
-        public Vector2 GetDirection()
-        {
-            Vector2 direction = Vector2.zero;
-
-            if(P1!=null && P2!=null)
-                direction = P2.Position2D - P1.Position2D;
-
-            return direction;
-        }
-
-        public NodePath GetOppositePath()
-        {
-            NodePath opposite = default(NodePath);
-            //TODO: 
-            //Encontrar los paths opuestos de cada extremo y obtener sus vectores direccion
-            //El path opuesto debe de estar a mas de 90º absolutos repecto a la direccion recta inicial
-            //Calcular la posicion del modificador de cada extremo del path que siga en la tangente de los paths opuestos
-            //Poner una maginitud aleatoria ente un rango?
-            //Si no hay opuesto coger direccion aleatoria?
-            return opposite;
-        }
-    }
-
     public List<NodePoint> _nodePoints;
     public List<NodePath> _nodePaths;
 
@@ -98,7 +32,6 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
     private int _currentSeed;
 
 
-    [ExecuteAlways]
     public void GenerateNodePointsAndPaths()
     {
         if (AutoResetSeed)
@@ -142,6 +75,7 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
         RemoveAllNodePaths();
 
         List<Vector2> NodePositions2D = new List<Vector2>();
+        _nodePaths = new List<NodePath>();
 
         foreach(var node in _nodePoints)
         {
@@ -157,7 +91,7 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
             path.P2 = GetNodePointInPosition(edge.prevEdge.v.position.ToVector2());
 
             //Evitar paths duplicados
-            if(!IsPathCreated(path.P1, path.P2))
+            if(path.P1 != null && path.P2 != null && !IsPathCreated(path.P1, path.P2))
             {
                 //Almacenar en cada punto los paths a los que pertenece
                 path.P1.Paths.Add(path);
@@ -205,13 +139,19 @@ public class NodePointsAndPathsGenerator : MonoBehaviour
                 return point;
         }
 
-        return default(NodePoint);
+        return null;
     }
 
     #endregion
 
 
     #region REMOVING NODES
+
+    public void RemoveAll()
+    {
+        RemoveAllNodePaths();
+        RemoveAllNodePoints();
+    }
 
     private void RemoveAllNodePoints()
     {
