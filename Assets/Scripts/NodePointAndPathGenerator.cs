@@ -2,8 +2,6 @@ using Habrador_Computational_Geometry;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 
@@ -14,9 +12,9 @@ public class NodePointAndPathGenerator : MonoBehaviour
 
     public GameObject NodePointPrefab;
     public GameObject NodePathPrefab;
-    [Serialize]
+    [SerializeField]
     private MapGenerator _mapGenerator;
-    [Serialize]
+    [SerializeField]
     private MapView _mapView;
 
     [Header("Generation params")]
@@ -28,6 +26,8 @@ public class NodePointAndPathGenerator : MonoBehaviour
     public float MaxEdgeProp = 0.6f;
     [Tooltip("Lejanía máxima de los puntos modificadores de la curva respecto a los puntos de extremo")]
     public float MaxRandomCurveRadius = 1;
+    public Vector3 PreferredPathDirecion;
+
     public bool AutoResetSeed = true;
     private int _currentSeed;
 
@@ -74,6 +74,7 @@ public class NodePointAndPathGenerator : MonoBehaviour
     {
         RemoveAllNodePaths();
 
+        //Obtener una malla con la triangulacion de Delaunay con los puntos generados previamente para los nodos
         List<Vector2> NodePositions2D = new List<Vector2>();
         _nodePaths = new List<NodePath>();
 
@@ -84,6 +85,7 @@ public class NodePointAndPathGenerator : MonoBehaviour
 
         HashSet<HalfEdge2> edges = DelaunayTriangulation.GetDelaunayMeshShorterEdges(NodePositions2D, MaxEdgeProp);
 
+        //Obtener paths a raiz de las aristas de la malla de Delaunay
         foreach (var edge in edges)
         {
             NodePath path = new NodePath();
@@ -97,17 +99,44 @@ public class NodePointAndPathGenerator : MonoBehaviour
                 path.P1.Paths.Add(path);
                 path.P2.Paths.Add(path);
 
-                //Dibujado line renderer
-                Vector3 p1 = path.P1.GO.transform.position;
-                Vector3 p2 = path.P2.GO.transform.position;
+                //Preparar line renderer
                 var lineGO = Instantiate(NodePathPrefab, transform);
                 path.Line = lineGO.GetComponent<LineRenderer>();
-                //path.Line.SetPositions(new Vector3[] { p1, p2 });
-                Vector3[] positions = CurveGeneration.GetRandomBezierCurve(p1, p2, MaxRandomCurveRadius);
-                path.Line.positionCount = positions.Length;
-                path.Line.SetPositions(positions);
+
                 _nodePaths.Add(path);
             }
+        }
+
+        DrawPathView();
+    }
+
+    /// <summary>
+    /// Dibuja todos los paths registrados
+    /// </summary>
+    private void DrawPathView()
+    {
+        //TODOOOOOO: fix M1 y M2 se quedan a 0
+        for (int i = 0; i < _nodePaths.Count; i++)
+        {
+            NodePath path = _nodePaths[i];
+            path.M1 = path.P1.Position2D;
+            path.M2 = path.P2.Position2D;
+            _nodePaths[i] = path;
+        }
+
+        foreach (var path in _nodePaths)
+        {
+            path.PrepareDrawingOppositeContinuousCurve(MaxRandomCurveRadius, PreferredPathDirecion);
+        }
+
+        foreach (var path in _nodePaths)
+        {
+            ////Linea recta
+            //path.DrawStaightLine();
+            ////Curva aleatoria
+            //path.DrawRandomCurve(MaxRandomCurveRadius);
+            //TODO: Lineas curvas 
+            path.DrawPreparedContinuousCurve();
         }
     }
 

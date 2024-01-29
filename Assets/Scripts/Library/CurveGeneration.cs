@@ -21,7 +21,7 @@ public static class CurveGeneration
         return GetBezierCurveSection(p1,p2,m1,m2);
     }
 
-    private static Vector3[] GetBezierCurveSection(Vector3 p1, Vector3 p2, Vector3 m1, Vector3 m2, int subdivisions = 0)
+    public static Vector3[] GetBezierCurveSection(Vector3 p1, Vector3 p2, Vector3 m1, Vector3 m2, int subdivisions = 0)
     {
         if (subdivisions <= 0)
             subdivisions = DefaultSectionSubdivisions;
@@ -36,10 +36,18 @@ public static class CurveGeneration
     /// <param name="origin"></param>
     /// <param name="maxRadius"></param>
     /// <returns></returns>
-    private static Vector3 GetRandomPointInCircle(Vector3 origin, float maxRadius)
+    public static Vector3 GetRandomPointInCircle(Vector3 origin, float maxRadius)
     {
         Vector2 randomDirection = Random.insideUnitCircle;
         Vector3 point = origin + new Vector3(randomDirection.x,0,randomDirection.y) * maxRadius;
+
+        return point;
+    }
+
+    public static Vector2 GetRandomPointInCircle2D(Vector2 origin, float maxRadius)
+    {
+        Vector2 randomDirection = Random.insideUnitCircle;
+        Vector2 point = origin + randomDirection*maxRadius;
 
         return point;
     }
