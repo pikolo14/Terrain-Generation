@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-[CustomEditor(typeof(NodePointAndPathGenerator))]
+[CustomEditor(typeof(NodePathsGenerator))]
 public class NodePointAndPathGeneratorEditor : Editor
 {
     public override void OnInspectorGUI()
     {
-        NodePointAndPathGenerator nodeGen = (NodePointAndPathGenerator)target;
+        NodePathsGenerator nodeGen = (NodePathsGenerator)target;
 
         DrawDefaultInspector();
 

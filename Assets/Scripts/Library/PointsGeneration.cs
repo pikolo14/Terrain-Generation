@@ -6,6 +6,9 @@ public static class PointsGeneration
 {
     public const string GroundTag = "Ground";
 
+
+    #region POISSON DISC POINTS
+
     /// <summary>
     /// Generación de puntos en una zona asegurando cierta distancia entre cada punto. Crea una rejilla y solo permite que haya un punto en cada celda. 
     /// </summary>
@@ -59,7 +62,7 @@ public static class PointsGeneration
                 Vector2 candidate = spawnCenter + dir;
 
                 //Si es válido se añade a las listas y se para de probar
-                if (IsValid(candidate, zoneSize, cellSize, radius, points, grid))
+                if (IsPoissonValidPoint(candidate, zoneSize, cellSize, radius, points, grid))
                 {
                     points.Add(candidate);
                     spawnPoints.Add(candidate);
@@ -82,7 +85,7 @@ public static class PointsGeneration
         return points;
     }
 
-    private static bool IsValid(Vector2 candidate, Vector2 zoneSize, float cellSize, float radius, List<Vector2> points, int[,] grid)
+    private static bool IsPoissonValidPoint(Vector2 candidate, Vector2 zoneSize, float cellSize, float radius, List<Vector2> points, int[,] grid)
     {
         //Si el candidato está dentro de la zona disponible de spawn
         if (candidate.x >= 0 && candidate.x < zoneSize.y && candidate.y >= 0 && candidate.y < zoneSize.y)
@@ -140,4 +143,33 @@ public static class PointsGeneration
         res = Vector3.zero;
         return false;
     }
+
+    #endregion
+
+
+    #region NEAR RANDOM POITNS
+
+    /// <summary>
+    /// Devuelve un punto aleatorio
+    /// </summary>
+    /// <param name="origin"></param>
+    /// <param name="maxRadius"></param>
+    /// <returns></returns>
+    public static Vector3 GetRandomPointInCircle(Vector3 origin, float maxRadius)
+    {
+        Vector2 randomDirection = Random.insideUnitCircle;
+        Vector3 point = origin + new Vector3(randomDirection.x, 0, randomDirection.y) * maxRadius;
+
+        return point;
+    }
+
+    public static Vector2 GetRandomPointInCircle2D(Vector2 origin, float maxRadius)
+    {
+        Vector2 randomDirection = Random.insideUnitCircle;
+        Vector2 point = origin + randomDirection * maxRadius;
+
+        return point;
+    }
+
+    #endregion
 }

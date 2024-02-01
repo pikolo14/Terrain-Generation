@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Habrador_Computational_Geometry;
+using static PointsGeneration;
+
 
 public static class CurveGeneration
 {
@@ -28,28 +30,6 @@ public static class CurveGeneration
 
         Vector3[] points = BezierCubic_EqualSteps(p1,p2,m1,m2,subdivisions);
         return points;
-    }
-
-    /// <summary>
-    /// Devuelve un punto aleatorio
-    /// </summary>
-    /// <param name="origin"></param>
-    /// <param name="maxRadius"></param>
-    /// <returns></returns>
-    public static Vector3 GetRandomPointInCircle(Vector3 origin, float maxRadius)
-    {
-        Vector2 randomDirection = Random.insideUnitCircle;
-        Vector3 point = origin + new Vector3(randomDirection.x,0,randomDirection.y) * maxRadius;
-
-        return point;
-    }
-
-    public static Vector2 GetRandomPointInCircle2D(Vector2 origin, float maxRadius)
-    {
-        Vector2 randomDirection = Random.insideUnitCircle;
-        Vector2 point = origin + randomDirection*maxRadius;
-
-        return point;
     }
 
     private static Vector3[] BezierCubic_EqualSteps(Vector3 p1, Vector3 p2, Vector3 m1, Vector3 m2, int steps)

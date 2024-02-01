@@ -2,7 +2,8 @@
 using System.Collections;
 
 
-public static class Noise
+public static class NoiseGeneration
+
 {
 	private const int _maxRandomSeed = 100000;
 

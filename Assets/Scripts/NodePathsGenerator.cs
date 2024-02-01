@@ -5,8 +5,21 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-public class NodePointAndPathGenerator : MonoBehaviour
+/// <summary>
+/// Controla la generacion de caminos a lo largo del terreno. Ofrece varios métodos de generación, todos basados en:
+///     1º Colocación de puntos sobre el terreno (node points)
+///     2º Trazado de caminos entre los puntos (node paths)
+/// </summary>
+public class NodePathsGenerator : MonoBehaviour
 {
+    public enum PathDrawStyle
+    {
+        StraightLine,
+        RandomCurve,
+        TangentContinuousCurve
+    }
+
+    public PathDrawStyle PathStyle = PathDrawStyle.StraightLine;
     public List<NodePoint> _nodePoints;
     public List<NodePath> _nodePaths;
 
@@ -26,7 +39,14 @@ public class NodePointAndPathGenerator : MonoBehaviour
     public float MaxEdgeProp = 0.6f;
     [Tooltip("Lejanía máxima de los puntos modificadores de la curva respecto a los puntos de extremo")]
     public float MaxRandomCurveRadius = 1;
-    public Vector3 PreferredPathDirecion;
+    [Tooltip("Cercanía mínima de los puntos modificadores de la curva respecto a los puntos de extremo")]
+    public float MinRandomCurveRadius = 0;
+
+    [Header("Continuous generation")]
+    [Tooltip("Direccion preferida as la que se dirigirán los caminos")]
+    public Vector2 PreferredPathDirection;
+    [Tooltip("Variación máxima de ángulo respecto a la direccion preferida")]
+    public float RandomTangentVariation = 15f;
 
     public bool AutoResetSeed = true;
     private int _currentSeed;
@@ -40,11 +60,12 @@ public class NodePointAndPathGenerator : MonoBehaviour
 
         Vector2 zoneSize = new Vector2(_mapGenerator.MapWidth, _mapGenerator.MapHeight);
         GenerateNodePoints(zoneSize);
-        GenerateNodePaths();
+        GenerateNodePathsConnections();
+        DrawPaths();
     }
 
 
-    #region NODE GENERATION
+    #region NODE POINTS GENERATION
 
     private void GenerateNodePoints(Vector2 zoneSize)
     {
@@ -60,7 +81,7 @@ public class NodePointAndPathGenerator : MonoBehaviour
             if (Physics.Raycast(new Vector3(point.x, 100, point.y), Vector3.down, out hit))
             {
                 //Comprobamos que el punto generado esté en el rango deseado de altura
-                if(IsCorrectHeight(hit.point.y))
+                if(_mapGenerator.IsHeightInRange(hit.point.y, PointHeightRange))
                 {
                     GameObject nodeGO = Instantiate(NodePointPrefab, transform);
                     nodeGO.transform.position = hit.point;
@@ -70,7 +91,12 @@ public class NodePointAndPathGenerator : MonoBehaviour
         }
     }
 
-    private void GenerateNodePaths()
+    #endregion
+
+
+    #region PATHS GENERATION
+
+    private void GenerateNodePathsConnections()
     {
         RemoveAllNodePaths();
 
@@ -86,9 +112,11 @@ public class NodePointAndPathGenerator : MonoBehaviour
         HashSet<HalfEdge2> edges = DelaunayTriangulation.GetDelaunayMeshShorterEdges(NodePositions2D, MaxEdgeProp);
 
         //Obtener paths a raiz de las aristas de la malla de Delaunay
+        int pathCount = 0;
         foreach (var edge in edges)
         {
-            NodePath path = new NodePath();
+            var lineGO = Instantiate(NodePathPrefab, transform);
+            NodePath path = lineGO.AddComponent<NodePath>();
             path.P1 = GetNodePointInPosition(edge.v.position.ToVector2());
             path.P2 = GetNodePointInPosition(edge.prevEdge.v.position.ToVector2());
 
@@ -100,43 +128,76 @@ public class NodePointAndPathGenerator : MonoBehaviour
                 path.P2.Paths.Add(path);
 
                 //Preparar line renderer
-                var lineGO = Instantiate(NodePathPrefab, transform);
                 path.Line = lineGO.GetComponent<LineRenderer>();
-
                 _nodePaths.Add(path);
-            }
-        }
 
-        DrawPathView();
+                //Numerar paths
+                lineGO.name = "Path " + pathCount;
+                pathCount++;
+            }
+            else
+            {
+                if (Application.isPlaying)
+                    Destroy(lineGO);
+                else
+                    DestroyImmediate(lineGO);
+            }
+        }        
     }
 
     /// <summary>
-    /// Dibuja todos los paths registrados
+    /// Dibuja el recorrido de cada path (previamente generados durante la conexion de nodos) siguiendo el estilo de dibujo especificado
     /// </summary>
-    private void DrawPathView()
+    private void DrawPaths()
     {
-        //TODOOOOOO: fix M1 y M2 se quedan a 0
+        switch(PathStyle)
+        {
+            case PathDrawStyle.StraightLine:
+                foreach (var path in _nodePaths)
+                {
+                    path.DrawStaightLine();
+                }
+                break;
+
+            case PathDrawStyle.RandomCurve:
+                foreach (var path in _nodePaths)
+                {
+                    path.DrawRandomCurve(MaxRandomCurveRadius);
+                }
+                break;
+
+            case PathDrawStyle.TangentContinuousCurve:
+                DrawTangentContinuousCurvePaths();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Dibuja los paths como curvas intentando continuar la tangente de los paths colocados justo en frente en el mismo nodo.
+    /// </summary>
+    private void DrawTangentContinuousCurvePaths()
+    {
+        //Colocamos inicialmente los modificadores de curva en el mismo punto que el extremo (inicialmente los paths son líneas rectas)
         for (int i = 0; i < _nodePaths.Count; i++)
         {
             NodePath path = _nodePaths[i];
             path.M1 = path.P1.Position2D;
             path.M2 = path.P2.Position2D;
-            _nodePaths[i] = path;
+            path.UpdateOpposites();
         }
 
-        foreach (var path in _nodePaths)
+        //Preparamos los puntos modificadores
+        Vector2 randomCurveRange = new Vector2(MinRandomCurveRadius, MaxRandomCurveRadius);
+        for (int i = 0; i < _nodePaths.Count; i++)
         {
-            path.PrepareDrawingOppositeContinuousCurve(MaxRandomCurveRadius, PreferredPathDirecion);
+            NodePath path = _nodePaths[i];
+            path.PrepareDrawingOppositeContinuousCurve(PreferredPathDirection, RandomTangentVariation, randomCurveRange);
         }
 
+        //Dibujamos los caminos con bezier siguiendo los puntos preparados
         foreach (var path in _nodePaths)
         {
-            ////Linea recta
-            //path.DrawStaightLine();
-            ////Curva aleatoria
-            //path.DrawRandomCurve(MaxRandomCurveRadius);
-            //TODO: Lineas curvas 
-            path.DrawPreparedContinuousCurve();
+            path.DrawPreparedCurve();
         }
     }
 
@@ -144,11 +205,6 @@ public class NodePointAndPathGenerator : MonoBehaviour
 
 
     #region GENERATION UTILS
-
-    private bool IsCorrectHeight(float height)
-    {
-        return _mapGenerator.IsHeightInRange(height, PointHeightRange);
-    }
 
     private bool IsPathCreated(NodePoint p1, NodePoint p2)
     {
@@ -174,7 +230,7 @@ public class NodePointAndPathGenerator : MonoBehaviour
     #endregion
 
 
-    #region REMOVING NODES
+    #region REMOVING NODES AND PATHS
 
     public void RemoveAll()
     {

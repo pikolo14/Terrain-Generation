@@ -37,7 +37,7 @@ public class MapGenerator : MonoBehaviour
 		if(newSeed)
 			_currentSeed = System.DateTime.Now.Millisecond;
 
-        float[,] noiseMap = Noise.GenerateNoiseMap(MapWidth, MapHeight, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
+        float[,] noiseMap = NoiseGeneration.GenerateNoiseMap(MapWidth, MapHeight, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
 
 		_mapView.DrawMap(noiseMap, HeightMultiplier, TerrainHeightCurve);
 
