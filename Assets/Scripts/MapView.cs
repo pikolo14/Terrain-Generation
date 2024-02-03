@@ -1,53 +1,55 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using System;
 using UnityEngine.Events;
+using System;
 
 public class MapView : MonoBehaviour 
 {
     public enum DrawMode
     {
         Noise,
-        Color,
-        Mesh
+        Color
     }
 
-    public DrawMode Mode = DrawMode.Mesh;
-	public Renderer TextureRender;
+    [SerializeField]
+    public DrawMode Mode { get => _mode; set => _mode = value; }
+    private static DrawMode _mode = DrawMode.Color;
+
+    public Renderer TextureRender;
     public MeshFilter MeshFilter;
     public MeshRenderer MeshRenderer;
 
 	public Gradient HeightGradient;
+
+    [SerializeField][HideInInspector]
 	public UnityEvent OnViewParametersChanged = new UnityEvent();
 
+    [SerializeField]
+    public Texture2D MeshTexture;
 
-	/// <summary>
-	/// Actualiza la visualizacion del mapa introducido
-	/// </summary>
-	/// <param name="heightMap"></param>
-	public void DrawMap(float[,] heightMap, float heightMultiplier, AnimationCurve terrainHeightCurve)
-	{
-        //Generate texture
-        Color[] colorArray = GetColorArray(heightMap, Mode, HeightGradient);
-        Texture2D texture = TextureUtils.GetTextureFromColorArray(colorArray, heightMap.GetLength(0), heightMap.GetLength(1));
 
-        //Draw 3D mesh or plane texture
-        if (Mode == DrawMode.Mesh)
-            DrawMeshMap(heightMap, texture, heightMultiplier, terrainHeightCurve);
-        else
-            DrawTexture(texture);
-	}
-
-    
-    #region MESH GENERATION
-
-    public void DrawMeshMap(float[,] heightMap, Texture2D texture, float heightMultiplier, AnimationCurve terrainHeightCurve)
+    /// <summary>
+    /// Dibuja la malla, aplica su textura previamente creada y genera su collider
+    /// </summary>
+    /// <param name="meshData"></param>
+    public void DrawFinalMesh(MeshData meshData)
     {
-        MeshData meshData = MeshGeneration.GenerateTerrainMesh(heightMap, heightMultiplier, terrainHeightCurve);
         MeshFilter.sharedMesh = meshData.GetMesh();
-        MeshRenderer.sharedMaterial.mainTexture = texture;
+        MeshRenderer.sharedMaterial.mainTexture = MeshTexture;
+
+        GenerateCollider(meshData);
+    }
+
+
+    #region COLLIDER GENERATION
+
+    /// <summary>
+    /// Genera el collider del terreno con la malla indicada
+    /// </summary>
+    /// <param name="meshData"></param>
+    public void GenerateCollider(MeshData meshData)
+    {
         MeshCollider collider = MeshRenderer.gameObject.GetComponent<MeshCollider>();
         if(!collider)
             collider = MeshRenderer.gameObject.AddComponent<MeshCollider>();
@@ -59,13 +61,19 @@ public class MapView : MonoBehaviour
 
     #region TEXTURE GENERATION
 
+    public void PrepareTerrainTexture(float[,] heightMap)
+    {
+        Color[] colorArray = GetColorArray(heightMap);
+        MeshTexture = TextureUtils.GetTextureFromColorArray(colorArray, heightMap.GetLength(0), heightMap.GetLength(1));
+    }
+
     /// <summary>
     /// Devuelve el array con los colores necesario para pasarselo a una textura
     /// </summary>
     /// <param name="heightMap"></param>
     /// <param name="mode"></param>
     /// <returns></returns>
-    public static Color[] GetColorArray(float[,] heightMap, DrawMode mode, Gradient colorGradient = null)
+    private Color[] GetColorArray(float[,] heightMap)
     {
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
@@ -75,10 +83,10 @@ public class MapView : MonoBehaviour
         {
             for (int x = 0; x < width; x++)
             {
-                if (mode == DrawMode.Noise)
+                if (_mode == DrawMode.Noise)
                     colorArray[y * width + x] = Color.Lerp(Color.black, Color.white, heightMap[x, y]);
                 else
-                    colorArray[y * width + x] = colorGradient.Evaluate(heightMap[x, y]);
+                    colorArray[y * width + x] = HeightGradient.Evaluate(heightMap[x, y]);
             }
         }
 

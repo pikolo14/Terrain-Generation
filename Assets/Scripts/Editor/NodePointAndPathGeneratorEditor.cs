@@ -13,7 +13,10 @@ public class NodePointAndPathGeneratorEditor : Editor
         DrawDefaultInspector();
 
         if(GUILayout.Button ("Generate all"))
-            nodeGen.GenerateNodePointsAndPaths();
+        {
+            var mapGenerator = FindAnyObjectByType<MapGenerator>();
+            nodeGen.GenerateNodePointsAndPaths(mapGenerator.MapSize, mapGenerator.transform.position, mapGenerator.HeightMultiplier);
+        }
 
         if (GUILayout.Button("Remove all"))
             nodeGen.RemoveAll();

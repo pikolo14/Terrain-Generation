@@ -10,17 +10,17 @@ public class MapGeneratorEditor : Editor {
 
 		if (DrawDefaultInspector ()) {
 			if (mapGen.AutoUpdate) {
-				mapGen.GenerateMap ();
+				mapGen.GenerateCompleteMap ();
 			}
 		}
 
 		if (GUILayout.Button ("Regenerate")) {
-			mapGen.GenerateMap (false);
+			mapGen.GenerateCompleteMap (false);
 		}
 
         if (GUILayout.Button("Generate new seed"))
         {
-            mapGen.GenerateMap(true);
+            mapGen.GenerateCompleteMap(true);
         }
     }
 }

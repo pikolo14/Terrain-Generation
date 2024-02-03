@@ -1,14 +1,20 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.Events;
+using UnityEditor;
+using System.Reflection;
 
 public class MapGenerator : MonoBehaviour 
 {
     [SerializeField]
 	private MapView _mapView;
-	
-	public int MapWidth = 100;
-	public int MapHeight = 100;
+	[SerializeField]
+	private NodePathsGenerator _pathsGenerator;
+	//[SerializeField]
+	//private PathCarving
+
+
+	public Vector2Int MapSize = new Vector2Int(100,100);
 	public float NoiseScale = 10;
 	public float HeightMultiplier = 1;
 
@@ -22,39 +28,64 @@ public class MapGenerator : MonoBehaviour
 	[Tooltip("Modifica los valores de altura originales para que sean mas o menos pronunciados en ciertos rangos de altura")]
 	public AnimationCurve TerrainHeightCurve;
 
-	public bool AutoUpdate;
+    public bool AutoUpdate;
 	private int _currentSeed;
 
-	public UnityEvent OnGenerate = new UnityEvent();
 
-
-	/// <summary>
-	/// Funcion principal que genera el mapa y llama a su visualizacion
-	/// </summary>
 	[ExecuteAlways]
-	public void GenerateMap(bool newSeed = false)
+    private void Awake()
+    {
+		PrepareComponents();
+    }
+
+    /// <summary>
+    /// Genera el mapa de principio a fin, pasando por la generacion de malla con noise, generacion de textura
+    /// </summary>
+    [ExecuteAlways]
+	public void GenerateCompleteMap(bool newSeed = false)
 	{
-		if(newSeed)
+        if (newSeed)
 			_currentSeed = System.DateTime.Now.Millisecond;
 
-        float[,] noiseMap = NoiseGeneration.GenerateNoiseMap(MapWidth, MapHeight, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
-
-		_mapView.DrawMap(noiseMap, HeightMultiplier, TerrainHeightCurve);
-
-		OnGenerate.Invoke();
+		//1. Generacion de malla a partir de noise y curva de resample de alturas
+        float[,] noiseMap = NoiseGeneration.GenerateNoiseMap(MapSize.x, MapSize.y, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
+        MeshData meshData = MeshGeneration.GenerateTerrainMesh(noiseMap, HeightMultiplier, TerrainHeightCurve);
+		//2. Generar textura por alturas
+		_mapView.PrepareTerrainTexture(noiseMap);
+		//3. Generar paths
+		_mapView.GenerateCollider(meshData);
+		_pathsGenerator.GenerateNodePointsAndPaths(MapSize, transform.position, _currentSeed);
+		//4. Aplicar carving
+		//TODO:
+		//5. Dibujar malla generada con la textura generada
+		_mapView.DrawFinalMesh(meshData);
 	}
 
-	public bool IsHeightInRange(float realHeight, Vector2 heightRangeProp)
+
+    #region UTILS
+
+    /// <summary>
+    /// Busca y referencia los componentes necesarios para la generacion de mapa
+    /// </summary>
+    private void PrepareComponents()
     {
-		Vector2 realHeightRange = heightRangeProp * HeightMultiplier + new Vector2(_mapView.transform.position.y, _mapView.transform.position.y);
-		return (realHeight > realHeightRange.x && realHeight < realHeightRange.y);
+        if (_pathsGenerator == null)
+            _pathsGenerator = FindObjectOfType<NodePathsGenerator>();
+        if (_mapView == null)
+            _mapView = GetComponent<MapView>();
     }
+
+    #endregion
+
+
+    #region EDITOR
 
     private void OnValidate()
     {
-		if(!_mapView)
-			_mapView = FindAnyObjectByType<MapView>();
-        MapWidth = Mathf.Abs (MapWidth);
-        MapHeight = Mathf.Abs (MapHeight);
+        PrepareComponents();
+        MapSize.x = Mathf.Abs (MapSize.x);
+        MapSize.y = Mathf.Abs (MapSize.y);
     }
+
+    #endregion	
 }
