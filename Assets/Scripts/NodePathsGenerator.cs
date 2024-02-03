@@ -25,10 +25,6 @@ public class NodePathsGenerator : MonoBehaviour
 
     public GameObject NodePointPrefab;
     public GameObject NodePathPrefab;
-    [SerializeField]
-    private MapGenerator _mapGenerator;
-    [SerializeField]
-    private MapView _mapView;
 
     [Header("Generation params")]
     [Tooltip("Distancia mínima que debe de haber entre los puntos de nodo")]
@@ -48,18 +44,21 @@ public class NodePathsGenerator : MonoBehaviour
     [Tooltip("Variación máxima de ángulo respecto a la direccion preferida")]
     public float RandomTangentVariation = 15f;
 
+    [Tooltip("Regenerar semilla al generar SOLO paths")]
     public bool AutoResetSeed = true;
     private int _currentSeed;
 
 
-    public void GenerateNodePointsAndPaths()
+    public void GenerateNodePointsAndPaths(Vector2Int mapSize, Vector3 mapOrigin, float heightMultiplier, int seed = int.MinValue)
     {
-        if (AutoResetSeed)
+        //Preparar random seed en funcion de atributos
+        if(seed != int.MinValue)
+            _currentSeed = seed;
+        else if (AutoResetSeed)
             _currentSeed = DateTime.Now.Millisecond;
         UnityEngine.Random.InitState(_currentSeed);
 
-        Vector2 zoneSize = new Vector2(_mapGenerator.MapWidth, _mapGenerator.MapHeight);
-        GenerateNodePoints(zoneSize);
+        GenerateNodePoints(mapSize, mapOrigin, heightMultiplier);
         GenerateNodePathsConnections();
         DrawPaths();
     }
@@ -67,12 +66,12 @@ public class NodePathsGenerator : MonoBehaviour
 
     #region NODE POINTS GENERATION
 
-    private void GenerateNodePoints(Vector2 zoneSize)
+    private void GenerateNodePoints(Vector2 zoneSize, Vector3 mapOrigin, float heightMultiplier)
     {
         RemoveAllNodePoints();
 
         _nodePoints = new List<NodePoint>();
-        List<Vector2> points = PointsGeneration.GeneratePoissonDiscPoints(DistanceRadius, _mapView.transform.position, zoneSize, _currentSeed);
+        List<Vector2> points = PointsGeneration.GeneratePoissonDiscPoints(DistanceRadius,mapOrigin, zoneSize, _currentSeed);
 
         foreach(var point in points)
         {
@@ -81,7 +80,7 @@ public class NodePathsGenerator : MonoBehaviour
             if (Physics.Raycast(new Vector3(point.x, 100, point.y), Vector3.down, out hit))
             {
                 //Comprobamos que el punto generado esté en el rango deseado de altura
-                if(_mapGenerator.IsHeightInRange(hit.point.y, PointHeightRange))
+                if(IsHeightInRange(hit.point.y, PointHeightRange, mapOrigin, heightMultiplier))
                 {
                     GameObject nodeGO = Instantiate(NodePointPrefab, transform);
                     nodeGO.transform.position = hit.point;
@@ -89,6 +88,12 @@ public class NodePathsGenerator : MonoBehaviour
                 }
             }
         }
+    }
+
+    public static bool IsHeightInRange(float realHeight, Vector2 heightRangeProp, Vector2 mapOrigin, float heightMultiplier)
+    {
+        Vector2 realHeightRange = heightRangeProp * heightMultiplier + new Vector2(mapOrigin.y, mapOrigin.y);
+        return (realHeight > realHeightRange.x && realHeight < realHeightRange.y);
     }
 
     #endregion
@@ -273,19 +278,6 @@ public class NodePathsGenerator : MonoBehaviour
             }
             _nodePaths.Clear();
         }
-    }
-
-    #endregion
-
-
-    #region EDITOR
-
-    private void OnValidate()
-    {
-        if (!_mapView)
-            _mapView = FindObjectOfType<MapView>();
-        if (!_mapGenerator)
-            _mapGenerator = FindObjectOfType<MapGenerator>();
     }
 
     #endregion
