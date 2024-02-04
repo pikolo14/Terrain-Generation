@@ -29,9 +29,9 @@ public class NodePath :MonoBehaviour
     /// Dibuja una curva de bezier con los modificadores colocados aleatoriamente
     /// </summary>
     /// <param name="maxRandomCurveRadius"></param>
-    public void DrawRandomCurve(float maxRandomCurveRadius)
+    public void DrawRandomCurve(float maxRandomCurveRadius, int subdivisions)
     {
-        Vector3[] positions = CurveGeneration.GetRandomBezierCurve(P1.GO.transform.position, P2.GO.transform.position, maxRandomCurveRadius);
+        Vector3[] positions = CurveGeneration.GetRandomBezierCurve(P1.GO.transform.position, P2.GO.transform.position, maxRandomCurveRadius, subdivisions);
         Line.positionCount = positions.Length;
         Line.SetPositions(positions);
     }
@@ -39,11 +39,11 @@ public class NodePath :MonoBehaviour
     /// <summary>
     /// Dibuja la línea de Bezier según la posición de los extremos y modificadores. Requiere haber hecho la preparacion previa
     /// </summary>
-    public void DrawPreparedCurve()
+    public void DrawPreparedCurve(int subdivisions)
     {
         Vector3 m1 = new Vector3(M1.x, P1.GO.transform.position.y, M1.y);
         Vector3 m2 = new Vector3(M2.x, P2.GO.transform.position.y, M2.y);
-        var positions = CurveGeneration.GetBezierCurveSection(P1.GO.transform.position, P2.GO.transform.position, m1, m2);
+        var positions = CurveGeneration.GetBezierCurveSection(P1.GO.transform.position, P2.GO.transform.position, m1, m2, subdivisions);
         Line.positionCount = positions.Length;
         Line.SetPositions(positions);
     }
@@ -169,15 +169,15 @@ public class NodePath :MonoBehaviour
     #endregion
 
 
-    #region GIZMOS AND EDITOR
+    #region EDITOR & GIZMOS
 
     private void OnDrawGizmos()
     {
         try
         {
             Gizmos.color = Color.blue;
-            Gizmos.DrawLine(P1.GO.transform.position, new Vector3(M1.x, P1.GO.transform.position.y, M1.y));
-            Gizmos.DrawLine(P2.GO.transform.position, new Vector3(M2.x, P2.GO.transform.position.y, M2.y));
+            //Gizmos.DrawLine(P1.GO.transform.position, new Vector3(M1.x, P1.GO.transform.position.y, M1.y));
+            //Gizmos.DrawLine(P2.GO.transform.position, new Vector3(M2.x, P2.GO.transform.position.y, M2.y));
         }
         catch (Exception) { }
     }

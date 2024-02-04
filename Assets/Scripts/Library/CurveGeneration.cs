@@ -16,11 +16,11 @@ public static class CurveGeneration
     /// <param name="p2"></param>
     /// <param name="maxRandomRadius">Radio de la esfera en la que se podrá colocar los puntos modificadores aleatorios. A mayor valor, mayor curva</param>
     /// <returns></returns>
-    public static Vector3[] GetRandomBezierCurve(Vector3 p1, Vector3 p2, float maxRandomRadius)
+    public static Vector3[] GetRandomBezierCurve(Vector3 p1, Vector3 p2, float maxRandomRadius, int subdivisions)
     {
         Vector3 m1 = GetRandomPointInCircle(p1, maxRandomRadius);
         Vector3 m2 = GetRandomPointInCircle(p2, maxRandomRadius);
-        return GetBezierCurveSection(p1,p2,m1,m2);
+        return GetBezierCurveSection(p1,p2,m1,m2,subdivisions);
     }
 
     public static Vector3[] GetBezierCurveSection(Vector3 p1, Vector3 p2, Vector3 m1, Vector3 m2, int subdivisions = 0)

@@ -10,8 +10,8 @@ public class MapGenerator : MonoBehaviour
 	private MapView _mapView;
 	[SerializeField]
 	private NodePathsGenerator _pathsGenerator;
-	//[SerializeField]
-	//private PathCarving
+	[SerializeField]
+	private PathCarving _pathCarving;
 
 
 	public Vector2Int MapSize = new Vector2Int(100,100);
@@ -50,13 +50,17 @@ public class MapGenerator : MonoBehaviour
 		//1. Generacion de malla a partir de noise y curva de resample de alturas
         float[,] noiseMap = NoiseGeneration.GenerateNoiseMap(MapSize.x, MapSize.y, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
         MeshData meshData = MeshGeneration.GenerateTerrainMesh(noiseMap, HeightMultiplier, TerrainHeightCurve);
-		//2. Generar textura por alturas
-		_mapView.PrepareTerrainTexture(noiseMap);
-		//3. Generar paths
+		//2. Generar paths
 		_mapView.GenerateCollider(meshData);
-		_pathsGenerator.GenerateNodePointsAndPaths(MapSize, transform.position, _currentSeed);
-		//4. Aplicar carving
-		//TODO:
+        _pathsGenerator.GenerateNodePointsAndPaths(MapSize, transform.position, HeightMultiplier, _currentSeed);
+        //3. Aplicar carving
+        if(_pathCarving!=null && _pathCarving.enabled)
+        {
+            _pathCarving.CarvePaths(ref meshData, MapSize, _pathsGenerator.NodePaths);
+            _mapView.GenerateCollider(meshData);
+        }
+        //4. Generar textura por alturas
+        _mapView.PrepareTerrainTexture(meshData, MapSize, HeightMultiplier);
 		//5. Dibujar malla generada con la textura generada
 		_mapView.DrawFinalMesh(meshData);
 	}
@@ -73,6 +77,8 @@ public class MapGenerator : MonoBehaviour
             _pathsGenerator = FindObjectOfType<NodePathsGenerator>();
         if (_mapView == null)
             _mapView = GetComponent<MapView>();
+        if (_pathCarving == null)
+            _pathCarving = FindObjectOfType<PathCarving>();
     }
 
     #endregion

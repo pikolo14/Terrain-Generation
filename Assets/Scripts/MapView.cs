@@ -67,6 +67,12 @@ public class MapView : MonoBehaviour
         MeshTexture = TextureUtils.GetTextureFromColorArray(colorArray, heightMap.GetLength(0), heightMap.GetLength(1));
     }
 
+    public void PrepareTerrainTexture(MeshData meshData, Vector2Int mapSize, float maxHeight)
+    {
+        Color[] colorArray = GetColorArray(meshData, mapSize, maxHeight);
+        MeshTexture = TextureUtils.GetTextureFromColorArray(colorArray, mapSize.x, mapSize.y);
+    }
+
     /// <summary>
     /// Devuelve el array con los colores necesario para pasarselo a una textura
     /// </summary>
@@ -87,6 +93,27 @@ public class MapView : MonoBehaviour
                     colorArray[y * width + x] = Color.Lerp(Color.black, Color.white, heightMap[x, y]);
                 else
                     colorArray[y * width + x] = HeightGradient.Evaluate(heightMap[x, y]);
+            }
+        }
+
+        return colorArray;
+    }
+
+    private Color[] GetColorArray(MeshData data, Vector2Int mapSize, float maxHeight)
+    {
+        Color[] colorArray = new Color[mapSize.x * mapSize.y];
+
+        for (int y = 0; y < mapSize.y; y++)
+        {
+            for (int x = 0; x < mapSize.x; x++)
+            {
+                int currentIndex = y * mapSize.x + x;
+                float currentProportionalHeight = data.Vertices[currentIndex].y/maxHeight;
+
+                if (_mode == DrawMode.Noise)
+                    colorArray[currentIndex] = Color.Lerp(Color.black, Color.white, currentProportionalHeight);
+                else
+                    colorArray[currentIndex] = HeightGradient.Evaluate(currentProportionalHeight);
             }
         }
 

@@ -56,8 +56,8 @@ public class NodePoint
             }
         }
 
-        if (oppositePath == path)
-            Debug.Log("Path opuesto valido no encontrado");
+        //if (oppositePath == path)
+        //    Debug.Log("Path opuesto valido no encontrado");
         return oppositePath;
     }
 
