@@ -18,7 +18,7 @@ public static class TextureUtils
     {
         Texture2D texture = new Texture2D(width, height);
         texture.wrapMode = TextureWrapMode.Clamp;
-        texture.filterMode = FilterMode.Point;
+        texture.filterMode = FilterMode.Bilinear;
         texture.SetPixels(colorArray);
         texture.Apply();
 

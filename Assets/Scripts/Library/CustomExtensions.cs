@@ -13,4 +13,14 @@ public static class CustomExtensions
     {
         return new Vector2 (v.x, v.z);
     }
+
+    public static Vector3 ToVector3XZ(this Vector2 v)
+    {
+        return new Vector3(v.x, 0, v.y);
+    }
+
+    public static Vector3 ToVector3_XZ(this Vector2Int v)
+    {
+        return new Vector3(v.x, 0, v.y);
+    }
 }
