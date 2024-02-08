@@ -21,7 +21,7 @@ public static class MeshGeneration
                 //Asignamos la posicion de los vertices segun las coordenadas X Y y el mapa de altura (lo ponemos en horizontal, siendo Y la altura ahora)
                 meshData.Vertices[vertexId] = new Vector3(x - midWidth, heightCurve.Evaluate(heightMap[x,y])*heightMultiplier, y - midHeight);
                 //Asignamos las UVs de cada vector
-                meshData.UVs[vertexId] = new Vector2(x/(float)width, y/(float)height);
+                meshData.UVs[vertexId] = new Vector2(x/(float)(width-1), y/(float)(height-1));
 
                 //Para cada celda creamos 2 triangulos con los indices de vertices que forman el cuadrado
                 if(y < height-1 && x < width-1)

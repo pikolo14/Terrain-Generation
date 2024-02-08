@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEditor;
+using Codice.Client.BaseCommands;
 
 [CustomEditor (typeof (MapGenerator))]
 public class MapGeneratorEditor : Editor {
@@ -21,6 +22,15 @@ public class MapGeneratorEditor : Editor {
         if (GUILayout.Button("Generate new seed"))
         {
             mapGen.GenerateCompleteMap(true);
+        }
+
+        GUILayout.Space (20);
+
+        if (GUILayout.Button("Regenerate texture"))
+        {
+            var mapView = FindObjectOfType<MapView>();
+            mapView.PrepareTerrainTexture(mapGen.MeshData, mapGen.MapSize, mapGen.HeightMultiplier);
+            mapView.RefreshTexture();
         }
     }
 }

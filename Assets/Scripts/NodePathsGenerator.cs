@@ -110,6 +110,16 @@ public class NodePathsGenerator : MonoBehaviour
     {
         RemoveAllNodePaths();
 
+        //Cancelamos generacion de caminos si o hay puntos de nodo suficientes
+        if(NodePoints == null || NodePoints.Count < 2)
+        {
+            int count = 0;
+            if(NodePoints!=null)
+                count = NodePoints.Count;
+
+            Debug.LogError("No hay suficientes puntos para hacer caminos ("+count+")");
+        }
+
         //Obtener una malla con la triangulacion de Delaunay con los puntos generados previamente para los nodos
         List<Vector2> NodePositions2D = new List<Vector2>();
         NodePaths = new List<NodePath>();
