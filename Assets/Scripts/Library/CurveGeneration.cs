@@ -32,6 +32,31 @@ public static class CurveGeneration
         return points;
     }
 
+    /// <summary>
+    /// Devuelve el punto de la curva en un punto concreto de una curva de Bezier con (longitud igualada)
+    /// </summary>
+    /// <param name="p1"></param>
+    /// <param name="p2"></param>
+    /// <param name="m1"></param>
+    /// <param name="m2"></param>
+    /// <param name="time">Valor de 0 a 1 que indica la proporción de longitud de la curva que se ha recorrido para obtener dicho punto</param>
+    /// <returns></returns>
+    public static Vector3 GetPointCurveAtTime(Vector3 p1, Vector3 p2, Vector3 m1, Vector3 m2, float time, out Vector3 tangent)
+    {
+        MyVector3 posA = p1.ToMyVector3();
+        MyVector3 posB = p2.ToMyVector3();
+        MyVector3 handleA = m1.ToMyVector3();
+        MyVector3 handleB = m2.ToMyVector3();
+
+        //Create a curve which is the data structure used in the following calculations
+        BezierCubic bezierCubic = new BezierCubic(posA, posB, handleA, handleB);
+        float length = InterpolationHelpMethods.GetLength_SimpsonsRule(bezierCubic, tStart: 0f, tEnd: time);
+        float accurateT = InterpolationHelpMethods.Find_t_FromDistance_Lookup(bezierCubic, length, accumulatedDistances: null);
+        tangent = bezierCubic.GetTangent(accurateT).ToVector3();
+
+        return bezierCubic.GetPosition(accurateT).ToVector3();
+    }
+
     private static Vector3[] BezierCubic_EqualSteps(Vector3 p1, Vector3 p2, Vector3 m1, Vector3 m2, int steps)
     {
         MyVector3 posA = p1.ToMyVector3();
