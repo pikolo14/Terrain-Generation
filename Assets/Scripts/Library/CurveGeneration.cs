@@ -41,7 +41,7 @@ public static class CurveGeneration
     /// <param name="m2"></param>
     /// <param name="time">Valor de 0 a 1 que indica la proporción de longitud de la curva que se ha recorrido para obtener dicho punto</param>
     /// <returns></returns>
-    public static Vector3 GetPointCurveAtTime(Vector3 p1, Vector3 p2, Vector3 m1, Vector3 m2, float time, out Vector3 tangent)
+    public static Vector3 GetCurvePointAtTime(Vector3 p1, Vector3 p2, Vector3 m1, Vector3 m2, float time, out Vector3 tangent)
     {
         MyVector3 posA = p1.ToMyVector3();
         MyVector3 posB = p2.ToMyVector3();

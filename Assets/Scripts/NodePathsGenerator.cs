@@ -16,7 +16,8 @@ public class NodePathsGenerator : MonoBehaviour
     {
         StraightLine,
         RandomCurve,
-        TangentContinuousCurve
+        TangentContinuousCurveSimple,
+        TangentContinuousCurveSectioned
     }
 
     public PathDrawStyle PathStyle = PathDrawStyle.StraightLine;
@@ -62,6 +63,15 @@ public class NodePathsGenerator : MonoBehaviour
 
         GenerateNodePoints(mapSize, mapOrigin, heightMultiplier);
         GenerateNodePathsConnections();
+
+        if(PathStyle == PathDrawStyle.TangentContinuousCurveSimple || PathStyle == PathDrawStyle.TangentContinuousCurveSimple)
+        {
+            PrepareTangentContinuousCurvePaths();
+
+            if(PathStyle == PathDrawStyle.TangentContinuousCurveSectioned)
+                GenerateNodePathsSections();
+        }
+
         DrawPathsCurves();
     }
 
@@ -110,7 +120,7 @@ public class NodePathsGenerator : MonoBehaviour
     {
         RemoveAllNodePaths();
 
-        //Cancelamos generacion de caminos si o hay puntos de nodo suficientes
+        //Cancelamos generacion de caminos si no hay puntos de nodo suficientes
         if(NodePoints == null || NodePoints.Count < 2)
         {
             int count = 0;
@@ -166,6 +176,17 @@ public class NodePathsGenerator : MonoBehaviour
     }
 
     /// <summary>
+    /// Subdivide la curva principal de cada path en secciones mas pequeñas
+    /// </summary>
+    private void GenerateNodePathsSections()
+    {
+        foreach(var path in NodePaths)
+        {
+            path.DoRecursiveSubsection();
+        }
+    }
+
+    /// <summary>
     /// Dibuja el recorrido de cada path (previamente generados durante la conexion de nodos) siguiendo el estilo de dibujo especificado
     /// </summary>
     private void DrawPathsCurves()
@@ -186,16 +207,18 @@ public class NodePathsGenerator : MonoBehaviour
                 }
                 break;
 
-            case PathDrawStyle.TangentContinuousCurve:
-                DrawTangentContinuousCurvePaths(PathCurveSubdivisions);
+            case PathDrawStyle.TangentContinuousCurveSimple:
+                DrawTangentContinuousCurvePathsSimply(PathCurveSubdivisions);
+                break;
+
+            case PathDrawStyle.TangentContinuousCurveSectioned:
+                DrawTangentContinuousCurvePathsWithSections(PathCurveSubdivisions);
                 break;
         }
     }
 
-    /// <summary>
-    /// Dibuja los paths como curvas intentando continuar la tangente de los paths colocados justo en frente en el mismo nodo.
-    /// </summary>
-    private void DrawTangentContinuousCurvePaths(int subdivisions)
+
+    private void PrepareTangentContinuousCurvePaths()
     {
         //Colocamos inicialmente los modificadores de curva en el mismo punto que el extremo (inicialmente los paths son líneas rectas)
         for (int i = 0; i < NodePaths.Count; i++)
@@ -203,7 +226,6 @@ public class NodePathsGenerator : MonoBehaviour
             NodePath path = NodePaths[i];
             path.M1 = path.P1.Position2D;
             path.M2 = path.P2.Position2D;
-            path.UpdateOpposites();
         }
 
         //Preparamos los puntos modificadores
@@ -213,11 +235,29 @@ public class NodePathsGenerator : MonoBehaviour
             NodePath path = NodePaths[i];
             path.PrepareDrawingOppositeContinuousCurve(PreferredPathDirection, RandomTangentVariation, randomCurveRange);
         }
+    }
 
+    /// <summary>
+    /// Dibuja los paths como curvas intentando continuar la tangente de los paths colocados justo en frente en el mismo nodo.
+    /// </summary>
+    private void DrawTangentContinuousCurvePathsSimply(int subdivisions)
+    {
         //Dibujamos los caminos con bezier siguiendo los puntos preparados
         foreach (var path in NodePaths)
         {
-            path.DrawPreparedCurve(subdivisions);
+            path.DrawPreparedCurveSimply(subdivisions);
+        }
+    }
+
+    /// <summary>
+    /// Dibuja los paths como curvas intentando continuar la tangente de los paths colocados justo en frente en el mismo nodo.
+    /// </summary>
+    private void DrawTangentContinuousCurvePathsWithSections(int subdivisions)
+    {
+        //Dibujamos los caminos con bezier siguiendo los puntos preparados
+        foreach (var path in NodePaths)
+        {
+            path.DrawPreparedCurveWithSections(subdivisions);
         }
     }
 

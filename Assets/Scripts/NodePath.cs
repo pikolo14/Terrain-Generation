@@ -7,11 +7,15 @@ using UnityEngine;
 [Serializable]
 public class NodePath :MonoBehaviour
 {
+    private readonly static Vector2 _randomOppositeDistanceVariation = new Vector2(0.5f,2f);
+
     [NonSerialized]
     public NodePoint P1, P2;
     public Vector2 M1, M2;
     public LineRenderer Line;
-    public NodePath Opposite1, Opposite2;
+
+    //Seccion principal de la curva
+    private NodePathSection _section;
 
 
     #region LINE DRAWING
@@ -39,7 +43,7 @@ public class NodePath :MonoBehaviour
     /// <summary>
     /// Dibuja la línea de Bezier según la posición de los extremos y modificadores. Requiere haber hecho la preparacion previa
     /// </summary>
-    public void DrawPreparedCurve(int subdivisions)
+    public void DrawPreparedCurveSimply(int subdivisions)
     {
         Vector3 m1 = new Vector3(M1.x, P1.GO.transform.position.y, M1.y);
         Vector3 m2 = new Vector3(M2.x, P2.GO.transform.position.y, M2.y);
@@ -48,20 +52,40 @@ public class NodePath :MonoBehaviour
         Line.SetPositions(positions);
     }
 
+    public void DrawPreparedCurveWithSections(int subdivisions)
+    {
+        _section.DrawSectionRecursively(subdivisions);
+    }
+
     #endregion
 
 
     #region CONTINUOUS CURVES PREPARATION
 
+    /// <summary>
+    /// Prepara ambos extremos del path para el dibujo de paths que intenten continuar a su camino opuesto o una direccion
+    /// </summary>
+    /// <param name="preferredDirection">Direccion preferida de la tangente de los caminos</param>
+    /// <param name="randomTangentVariation">Variación aleatoria máxima del ángulo de la tangente respecto a la dirección preferida</param>
+    /// <param name="randomTangentMagnitudeRange">Rango de variación aleatoria de la distancia a la que se colocará el punto modificador</param>
     public void PrepareDrawingOppositeContinuousCurve(Vector2 preferredDirection, float randomTangentVariation, Vector2 randomTangentMagnitudeRange)
     {
         PrepareOneOppositeContinuousCurve(0, ref P1, ref M1, preferredDirection, randomTangentVariation, randomTangentMagnitudeRange);
         PrepareOneOppositeContinuousCurve(1, ref P2, ref M2, preferredDirection, randomTangentVariation, randomTangentMagnitudeRange);
     }
 
+    /// <summary>
+    /// Dibuja
+    /// </summary>
+    /// <param name="pointIndex"></param>
+    /// <param name="point"></param>
+    /// <param name="modifier"></param>
+    /// <param name="preferredDirection"></param>
+    /// <param name="randomTangentVariation"></param>
+    /// <param name="randomTangentMagnitudeRange"></param>
     private void PrepareOneOppositeContinuousCurve( int pointIndex, ref NodePoint point, ref Vector2 modifier, Vector2 preferredDirection, float randomTangentVariation, Vector2 randomTangentMagnitudeRange)
     {
-        //Recogemos el path opuesto para cada nodo
+        //Obtenemos el path opuesto
         Vector2 pathDir;
         Vector2 tangent;
         NodePath opposite = point.GetOppositePathTo(this, out pathDir);
@@ -69,17 +93,12 @@ public class NodePath :MonoBehaviour
         //Si hay path opuesto y tiene tangente...
         if (pathDir != Vector2.zero && opposite.TryGetTangent(point, out tangent))
         {
-            //Aplicamos la misma pero en sentido contrario para nuestro path actual
-            //TODO: Poner una maginitud aleatoria ente un rango?
-            modifier = point.Position2D - tangent;
+            //Aplicamos la misma pero en sentido contrario para nuestro path actual, cambiando un poco la distancia del punto
+            modifier = point.Position2D - tangent*UnityEngine.Random.Range(_randomOppositeDistanceVariation.x, _randomOppositeDistanceVariation.y);
         }
         //Si no hay path opuesto o no hay tangente...
         else
         {
-            ////Asignamos un valor completamente aleatorio
-            //var rand = PointsGeneration.GetRandomPointInCircle2D(point.Position2D, maxRandomCurveRadius);
-            //modifier = rand;
-
             //Tomamos la direccion preferida para obtener la tangente (en una direccion u otra en función del extremo que sea)
             Vector2 relativePathDirection = GetPathDirectionFrom(point);
             tangent = relativePathDirection.Project(preferredDirection).normalized * UnityEngine.Random.Range(randomTangentMagnitudeRange.x, randomTangentMagnitudeRange.y);
@@ -90,7 +109,22 @@ public class NodePath :MonoBehaviour
 
     #endregion
 
-    
+
+    #region SUBSECTIONS
+
+    /// <summary>
+    /// Divide la curva principal del path actual en varias secciones. Estas subsecciones se pueden seguir subdividiendo sucesivamente hasta el número de niveles indicados por la recursividad.
+    /// </summary>
+    /// <param name="sectionsCount">Número de secciones en las que se dividira la curva en este nivel</param>
+    /// <param name="recursivity">Número de veces consecutivas que se subdividirá cada subsección recursivamente (subsecciones de subsecciones de subsecciones, etc.)</param>
+    public void DoRecursiveSubsection()
+    {
+        _section = new NodePathSection(P1.GO.transform.position, P2.GO.transform.position, M1, M2, 3, 1);
+    }
+
+    #endregion
+
+
     #region PATH VECTORS
 
     /// <summary>
@@ -195,12 +229,6 @@ public class NodePath :MonoBehaviour
             Gizmos.DrawSphere(P1.GO.transform.position, 1.5f);
         }
         catch (Exception) { }
-    }
-
-    public void UpdateOpposites()
-    {
-        Opposite1 = P1.GetOppositePathTo(this, out _);
-        Opposite2 = P2.GetOppositePathTo(this, out _);
     }
 
     #endregion
