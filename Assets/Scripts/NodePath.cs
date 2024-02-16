@@ -52,9 +52,17 @@ public class NodePath :MonoBehaviour
         Line.SetPositions(positions);
     }
 
+    /// <summary>
+    /// Dibuja una curva más compleja compuesta de varias subsecciones compuestas a su vez por subsecciones recursivamente
+    /// </summary>
+    /// <param name="subdivisions">Número de puntos de curva de bezier que se obtendrán de cada sección situada en el nivel mas bajo de recursividad</param>
     public void DrawPreparedCurveWithSections(int subdivisions)
     {
-        _section.DrawSectionRecursively(subdivisions);
+        List<Vector3> linePoints = new List<Vector3>();
+        linePoints.Add(P1.GO.transform.position);
+        _section.GetSectionPointsRecursively(ref linePoints, subdivisions);
+        Line.positionCount = linePoints.Count;
+        Line.SetPositions(linePoints.ToArray());
     }
 
     #endregion
@@ -102,7 +110,7 @@ public class NodePath :MonoBehaviour
             //Tomamos la direccion preferida para obtener la tangente (en una direccion u otra en función del extremo que sea)
             Vector2 relativePathDirection = GetPathDirectionFrom(point);
             tangent = relativePathDirection.Project(preferredDirection).normalized * UnityEngine.Random.Range(randomTangentMagnitudeRange.x, randomTangentMagnitudeRange.y);
-            tangent = GetRandomVectorInAngle(tangent, randomTangentVariation);
+            tangent = GetRandomVectorInAngle2D(tangent, randomTangentVariation);
             modifier = point.Position2D + tangent;
         }
     }
@@ -117,9 +125,12 @@ public class NodePath :MonoBehaviour
     /// </summary>
     /// <param name="sectionsCount">Número de secciones en las que se dividira la curva en este nivel</param>
     /// <param name="recursivity">Número de veces consecutivas que se subdividirá cada subsección recursivamente (subsecciones de subsecciones de subsecciones, etc.)</param>
-    public void DoRecursiveSubsection()
+    public void DoRecursiveSubsection(int sectionsPerLevel, int recursivityLevels, float maxAngleSubsectionVariation, float customSubsectionsTangentMultiplier)
     {
-        _section = new NodePathSection(P1.GO.transform.position, P2.GO.transform.position, M1, M2, 3, 1);
+        Vector3 m1_3D = new Vector3(M1.x, P1.GO.transform.position.y, M1.y);
+        Vector3 m2_3D = new Vector3(M2.x, P2.GO.transform.position.y, M2.y);
+
+        _section = new NodePathSection(P1.GO.transform.position, P2.GO.transform.position, m1_3D, m2_3D, sectionsPerLevel, maxAngleSubsectionVariation, customSubsectionsTangentMultiplier, recursivityLevels);
     }
 
     #endregion
@@ -194,10 +205,24 @@ public class NodePath :MonoBehaviour
     /// <param name="mainDirection"></param>
     /// <param name="angleRange"></param>
     /// <returns></returns>
-    public static Vector2 GetRandomVectorInAngle(Vector2 mainDirection, float angleRange)
+    public static Vector2 GetRandomVectorInAngle2D(Vector2 mainDirection, float angleRange)
     {
         float angle = UnityEngine.Random.Range(-angleRange, angleRange);
         return Quaternion.AngleAxis(angle, Vector3.forward) * mainDirection;
+    }
+
+    /// <summary>
+    /// Devuelve un vector con un ángulo aleatorio dentro de un rango alrededor de un vector 2D
+    /// </summary>
+    /// <param name="mainDirection"></param>
+    /// <param name="angleRange"></param>
+    /// <returns></returns>
+    public static Vector3 GetRandomVectorInAngle3D(Vector3 mainDirection, float angleRange)
+    {
+        Vector2 tangent2D = new Vector2(mainDirection.x, mainDirection.z);
+        Vector2 aux = GetRandomVectorInAngle2D (tangent2D, angleRange);
+        Vector3 tangent3D = new Vector3(aux.x, mainDirection.y, aux.y);
+        return tangent3D;
     }
 
     #endregion

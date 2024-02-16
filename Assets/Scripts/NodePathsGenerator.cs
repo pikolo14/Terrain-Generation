@@ -38,8 +38,18 @@ public class NodePathsGenerator : MonoBehaviour
     public float MaxRandomCurveRadius = 1;
     [Tooltip("Cercanía mínima de los puntos modificadores de la curva respecto a los puntos de extremo")]
     public float MinRandomCurveRadius = 0;
-    [Tooltip("Númerop de segmentos en los que se va a dividir cada curva contenida de los paths")]
+    [Tooltip("Número de segmentos en los que se va a dividir cada curva contenida de los paths")]
     public int PathCurveSubdivisions = 10;
+
+    [Header("Sections drawing")]
+    [Tooltip("Número de segmentos en los que se va a dividir cada subsección de nivel más bajo de recursividad de los paths (solo para dibujado de curvas con secciones)")]
+    public int RecursiveSubsectionSubdivisions = 5;
+    [Tooltip("Número de segmentos en los que se subdividira cada segmento")]
+    public int SectionsPerLevel = 3;
+    [Tooltip("Número de veces que se subdividira cada seccion dentro de una seccion. Si la recursividad es 2 por ejemplo se tendran secciones de secciones de la seccion principal")]
+    public int RecursivityLevels = 1;
+    public float MaxAngleSubsectionVariation = 120f;
+    public float CustomSubsectionsTangentMultiplier = 2f;
 
     [Header("Continuous generation")]
     [Tooltip("Direccion preferida as la que se dirigirán los caminos")]
@@ -64,12 +74,12 @@ public class NodePathsGenerator : MonoBehaviour
         GenerateNodePoints(mapSize, mapOrigin, heightMultiplier);
         GenerateNodePathsConnections();
 
-        if(PathStyle == PathDrawStyle.TangentContinuousCurveSimple || PathStyle == PathDrawStyle.TangentContinuousCurveSimple)
+        if(PathStyle == PathDrawStyle.TangentContinuousCurveSimple || PathStyle == PathDrawStyle.TangentContinuousCurveSectioned)
         {
             PrepareTangentContinuousCurvePaths();
 
             if(PathStyle == PathDrawStyle.TangentContinuousCurveSectioned)
-                GenerateNodePathsSections();
+                GenerateNodePathsSections(SectionsPerLevel, RecursivityLevels);
         }
 
         DrawPathsCurves();
@@ -178,11 +188,11 @@ public class NodePathsGenerator : MonoBehaviour
     /// <summary>
     /// Subdivide la curva principal de cada path en secciones mas pequeñas
     /// </summary>
-    private void GenerateNodePathsSections()
+    private void GenerateNodePathsSections(int sectionsPerLevel, int recursivityLevels)
     {
         foreach(var path in NodePaths)
         {
-            path.DoRecursiveSubsection();
+            path.DoRecursiveSubsection(sectionsPerLevel, recursivityLevels, MaxAngleSubsectionVariation, CustomSubsectionsTangentMultiplier);
         }
     }
 
@@ -212,7 +222,7 @@ public class NodePathsGenerator : MonoBehaviour
                 break;
 
             case PathDrawStyle.TangentContinuousCurveSectioned:
-                DrawTangentContinuousCurvePathsWithSections(PathCurveSubdivisions);
+                DrawTangentContinuousCurvePathsWithSections(RecursiveSubsectionSubdivisions);
                 break;
         }
     }

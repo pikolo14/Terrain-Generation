@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,5 +23,12 @@ public static class CustomExtensions
     public static Vector3 ToVector3_XZ(this Vector2Int v)
     {
         return new Vector3(v.x, 0, v.y);
+    }
+
+    public static T[] SubArray<T>(this T[] data, int index, int length)
+    {
+        T[] result = new T[length];
+        Array.Copy(data, index, result, 0, length);
+        return result;
     }
 }
