@@ -18,6 +18,7 @@ public class MapGenerator : MonoBehaviour
     public MeshData MeshData;
 
     public Vector2Int MapSize = new Vector2Int(100,100);
+    public Vector2Int ChunkSize = new Vector2Int(100, 100);
 	public float NoiseScale = 10;
 	public float HeightMultiplier = 1;
 
