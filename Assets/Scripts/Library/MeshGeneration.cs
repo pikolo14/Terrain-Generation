@@ -6,7 +6,8 @@ public static class MeshGeneration
 {
     public static MeshData GenerateTerrainMesh(float[,] heightMap, float heightMultiplier, AnimationCurve heightCurve)
     {
-        return GenerateTerrainMesh(heightMap, heightMultiplier, heightCurve);
+        //TODO: Continuar haciendo la logica de los chunks
+        return GenerateTerrainChunk(ref heightMap, new Vector2Int(), new Vector2Int(heightMap.GetLength(0), heightMap.GetLength(1)), heightMultiplier, heightCurve);
     }
 
     public static MeshData GenerateTerrainChunk(ref float[,] fullHeightMap, Vector2Int chunkOrigin, Vector2Int chunkSize, float heightMultiplier, AnimationCurve heightCurve)
