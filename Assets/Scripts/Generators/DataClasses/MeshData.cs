@@ -13,11 +13,11 @@ public struct MeshData
 
     private int _currentTriangle;
 
-    public MeshData(int width, int height)
+    public MeshData(int quadsWidth, int quadsHeight)
     {
-        Vertices = new Vector3[width * height];
-        Triangles = new int[(width - 1) * (height - 1) * 6];
-        UVs = new Vector2[width * height];
+        Vertices = new Vector3[(quadsWidth+1) * (quadsHeight+1)];
+        Triangles = new int[quadsWidth * quadsHeight * 6];
+        UVs = new Vector2[(quadsWidth+1) * (quadsHeight+1)];
         _currentTriangle = 0;
     }
 

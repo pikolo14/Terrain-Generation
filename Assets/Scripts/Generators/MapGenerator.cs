@@ -4,6 +4,7 @@ using UnityEngine.Events;
 using UnityEditor;
 using System.Reflection;
 using System;
+using System.Collections.Generic;
 
 public class MapGenerator : MonoBehaviour 
 {
@@ -16,13 +17,14 @@ public class MapGenerator : MonoBehaviour
 
     [SerializeField][HideInInspector]
     public MeshData MeshData;
-
     public Vector2Int MapSize = new Vector2Int(100,100);
     public Vector2Int ChunkSize = new Vector2Int(100, 100);
 	public float NoiseScale = 10;
 	public float HeightMultiplier = 1;
+    private List<TerrainChunk> _terrainChunks = new List<TerrainChunk>();
 
-	[Range(1,10)]
+
+    [Range(1,10)]
 	public int Octaves = 3;
 	[Range(1,10)]
 	public float Lacunarity = 2;
@@ -49,24 +51,29 @@ public class MapGenerator : MonoBehaviour
 	public void GenerateCompleteMap(bool newSeed = false)
 	{
         if (newSeed)
-			_currentSeed = System.DateTime.Now.Millisecond;
+			_currentSeed = DateTime.Now.Millisecond;
 
-		//1. Generacion de malla a partir de noise y curva de resample de alturas
-        float[,] noiseMap = NoiseGeneration.GenerateNoiseMap(MapSize.x, MapSize.y, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
-        MeshData = MeshGeneration.GenerateTerrainMesh(noiseMap, HeightMultiplier, TerrainHeightCurve);
-		//2. Generar paths
-		_mapView.GenerateCollider(MeshData);
-        _pathsGenerator.GenerateNodePointsAndPaths(MapSize, transform.position, HeightMultiplier, _currentSeed);
-        //3. Aplicar carving
-        if(_pathCarving!=null && _pathCarving.enabled)
-        {
-            _pathCarving.CarvePaths(ref MeshData, MapSize, _pathsGenerator.NodePaths);
-            _mapView.GenerateCollider(MeshData);
-        }
+        //Vaciar chunks previos
+        _terrainChunks.Clear();
+
+        //1. Generacion de malla a partir de noise y curva de resample de alturas
+        float[,] noiseMap = NoiseGeneration.GenerateNoiseMap(MapSize.x+1, MapSize.y+1, _currentSeed, NoiseScale, Octaves, Persistance, Lacunarity);
+        _terrainChunks = MeshGeneration.GenerateTerrainChunks(in noiseMap, ChunkSize, HeightMultiplier, TerrainHeightCurve);
+        ////2. Generar paths
+        //_mapView.GenerateCollider(MeshData);
+        //      _pathsGenerator.GenerateNodePointsAndPaths(MapSize, transform.position, HeightMultiplier, _currentSeed);
+        //      //3. Aplicar carving
+        //      if(_pathCarving!=null && _pathCarving.enabled)
+        //      {
+        //          _pathCarving.CarvePaths(ref MeshData, MapSize, _pathsGenerator.NodePaths);
+        //          _mapView.GenerateCollider(MeshData);
+        //      }
         //4. Generar textura por alturas
-        _mapView.PrepareTerrainTexture(MeshData, MapSize, HeightMultiplier);
-		//5. Dibujar malla generada con la textura generada
-		_mapView.DrawFinalMesh(MeshData);
+        //_mapView.PrepareTerrainTexture(MeshData, MapSize, HeightMultiplier);
+        _mapView.PrepareTerrainChunkTexture(_terrainChunks, HeightMultiplier);
+        //5. Dibujar malla generada con la textura generada
+        //_mapView.DrawFinalMesh(meshData);
+        _mapView.DrawChunks(_terrainChunks);
 	}
 
 

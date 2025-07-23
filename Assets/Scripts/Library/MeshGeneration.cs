@@ -4,59 +4,64 @@ using UnityEngine;
 
 public static class MeshGeneration
 {
-    public static MeshData GenerateTerrainMesh(float[,] heightMap, float heightMultiplier, AnimationCurve heightCurve)
+    public static List<TerrainChunk> GenerateTerrainChunks(in float[,] heightMap, Vector2Int chunkMaxQuadsSize, float heightMultiplier, AnimationCurve heightCurve)
     {
-        //TODO: Continuar haciendo la logica de los chunks
-        return GenerateTerrainChunk(ref heightMap, new Vector2Int(), new Vector2Int(heightMap.GetLength(0), heightMap.GetLength(1)), heightMultiplier, heightCurve);
+        int width = heightMap.GetLength(0)-1;
+        int height = heightMap.GetLength(1)-1;
+        float midWidth = (heightMap.GetLength(0)) / 2f;
+        float midHeight = (heightMap.GetLength(1)) / 2f;
+
+        List<TerrainChunk> chunks = new List<TerrainChunk>();
+        Vector2Int mapQuadsSize = new Vector2Int(width, height);
+        Vector2Int chunkCellsSize = new Vector2Int(Mathf.CeilToInt((float)mapQuadsSize.x / chunkMaxQuadsSize.x), 
+            Mathf.CeilToInt((float)mapQuadsSize.y / chunkMaxQuadsSize.y));
+
+        for (int j = 0; j<chunkCellsSize.y; j++)
+        {
+            for(int i = 0; i<chunkCellsSize.x; i++)
+            {
+                Vector2Int chunkCell = new Vector2Int(i, j);
+                Vector2Int chunkMapQuad = chunkMaxQuadsSize * chunkCell;
+                Vector2Int chunkQuadsSize = (mapQuadsSize - chunkMapQuad);
+                chunkQuadsSize.Clamp(Vector2Int.zero, chunkMaxQuadsSize);
+                Vector3 chunkPosition = new Vector3(chunkMapQuad.x - midWidth, 0, chunkMapQuad.y - midHeight);
+
+                chunks.Add(GenerateTerrainChunk(in heightMap, chunkPosition, chunkCell, chunkMapQuad, chunkQuadsSize, chunkMaxQuadsSize, heightMultiplier, heightCurve));
+            }
+        }
+
+        return chunks;
     }
 
-    public static MeshData GenerateTerrainChunk(ref float[,] fullHeightMap, Vector2Int chunkOrigin, Vector2Int chunkSize, float heightMultiplier, AnimationCurve heightCurve)
+    private static TerrainChunk GenerateTerrainChunk(in float[,] fullHeightMap, Vector3 chunkPosition, Vector2Int chunkCell, Vector2Int chunkMapQuad, Vector2Int chunkQuadsSize, Vector2Int chunkMaxQuadsMaxSize, float heightMultiplier, AnimationCurve heightCurve)
     {
-        int width = fullHeightMap.GetLength(0);
-        int height = fullHeightMap.GetLength(1);
-        float midWidth = (width - 1) / 2f;
-        float midHeight = (height - 1) / 2f;
-
-        MeshData meshData = new MeshData(width, height);
+        int width = chunkQuadsSize.x;
+        int height = chunkQuadsSize.y;
+        
+        TerrainChunk chunk = new TerrainChunk(chunkQuadsSize, chunkCell, chunkMapQuad);
 
         //Asignar los vértices de la malla y los id de vertices que forman cada triangulo
-        for (int y = 0, vertexId = 0; y < height; y++)
+        for (int y = 0, vertexId = 0; y <= height; y++)
         {
-            for (int x = 0; x < width; x++, vertexId++)
+            for (int x = 0; x <= width; x++, vertexId++)
             {
                 //Asignamos la posicion de los vertices segun las coordenadas X Y y el mapa de altura (lo ponemos en horizontal, siendo Y la altura ahora)
-                meshData.Vertices[vertexId] = new Vector3(x - midWidth, heightCurve.Evaluate(fullHeightMap[x, y]) * heightMultiplier, y - midHeight);
+                chunk.Mesh.Vertices[vertexId] = new Vector3(x, heightCurve.Evaluate(fullHeightMap[chunkMapQuad.x + x, chunkMapQuad.y + y]) * heightMultiplier, y) + chunkPosition;
                 //Asignamos las UVs de cada vector
-                meshData.UVs[vertexId] = new Vector2(x / (float)(width - 1), y / (float)(height - 1));
+                chunk.Mesh.UVs[vertexId] = new Vector2(x / (float)(width), y / (float)(height));
 
                 //Para cada celda creamos 2 triangulos con los indices de vertices que forman el cuadrado
-                if (y < height - 1 && x < width - 1)
+                if (y < height && x < width)
                 {
-                    int idDown = vertexId + width;
+                    int idDown = vertexId + width+1;
                     int idRight = vertexId + 1;
                     int idDownRight = idDown + 1;
-                    meshData.AddTriangle(vertexId, idDown, idDownRight);
-                    meshData.AddTriangle(vertexId, idDownRight, idRight);
+                    chunk.Mesh.AddTriangle(vertexId, idDown, idDownRight);
+                    chunk.Mesh.AddTriangle(vertexId, idDownRight, idRight);
                 }
             }
         }
 
-        return meshData;
-    }
-
-
-    public class TerrainChunk
-    {
-        public Vector2Int Size;
-        public Vector2Int Origin;
-        public MeshData Mesh;
-
-
-        public TerrainChunk(Vector2Int size, Vector2Int origin, MeshData mesh)
-        {
-            Size = size;
-            Origin = origin;
-            Mesh = mesh;
-        }
+        return chunk;
     }
 }

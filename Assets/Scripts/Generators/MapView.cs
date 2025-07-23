@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Events;
-using System;
 
 public class MapView : MonoBehaviour 
 {
@@ -19,6 +18,7 @@ public class MapView : MonoBehaviour
     public Renderer TextureRender;
     public MeshFilter MeshFilter;
     public MeshRenderer MeshRenderer;
+    public Transform ChunkParent;
 
     [Header("Color")]
     [Tooltip("Gradiente de color en funcion de la altura")]
@@ -44,16 +44,37 @@ public class MapView : MonoBehaviour
     public void DrawFinalMesh(MeshData meshData)
     {
         MeshFilter.sharedMesh = meshData.GetMesh();
-        RefreshTexture();
+        RefreshMapTexture();
         GenerateCollider(meshData);
     }
 
     /// <summary>
-    /// Vuelve a aplicar la textura almacenada en los parámetros de la clase
+    /// Vuelve a aplicar la textura almacenada en los parámetros de la clase (solo para modo sin chunks)
     /// </summary>
-    public void RefreshTexture()
+    public void RefreshMapTexture()
     {
         MeshRenderer.material.mainTexture = MeshTexture;
+    }
+
+    public void DrawChunks(List<TerrainChunk> chunks)
+    {
+        //Vaciar chunks previos
+        while(ChunkParent.childCount > 0)
+        {
+            DestroyImmediate(ChunkParent.GetChild(ChunkParent.childCount-1).gameObject);
+        }
+
+        //Generar marlla con textura de cada chunk
+        foreach (var chunk in chunks)
+        {
+            GameObject meshGO = new GameObject("Chunk " + chunk.Coordinates);
+            meshGO.transform.parent = ChunkParent;
+            var renderer = meshGO.AddComponent<MeshRenderer>();
+            MeshFilter filter = meshGO.AddComponent<MeshFilter>();
+            filter.sharedMesh = chunk.Mesh.GetMesh();
+            renderer.sharedMaterial = new Material(Shader.Find("Unlit/Texture"));
+            renderer.sharedMaterial.mainTexture = chunk.Texture;
+        }
     }
 
 
@@ -88,6 +109,15 @@ public class MapView : MonoBehaviour
         MeshTexture = TextureUtils.GetTextureFromColorArray(colorArray, (mapSize.x-1)*PixelsPerQuad, (mapSize.y-1)*PixelsPerQuad, ImageFilter);
     }
 
+    public void PrepareTerrainChunkTexture(List<TerrainChunk> chunks, float maxHeight)
+    {
+        foreach(var chunk in chunks)
+        {
+            Color[] colorArray = GetColorArray(chunk.Mesh, chunk.Size, maxHeight, PixelsPerQuad);
+            chunk.Texture = TextureUtils.GetTextureFromColorArray(colorArray, (chunk.Size.x) * PixelsPerQuad, (chunk.Size.y) * PixelsPerQuad, ImageFilter);
+        }
+    }
+
     /// <summary> 
     /// Devuelve el array con los colores necesario para pasarselo a una textura
     /// </summary>
@@ -116,35 +146,8 @@ public class MapView : MonoBehaviour
 
     private Color[] GetColorArray(MeshData data, Vector2Int mapSize, float maxHeight, int pixelsPerQuad)
     {
-        //mapSize -= new Vector2Int(1, 1);
-
         Color[] colorArray = new Color[(mapSize.x) * (mapSize.y) * pixelsPerQuad*pixelsPerQuad];
-
-        //for (int y = 0; y < mapSize.y; y++)
-        //{
-        //    for (int x = 0; x < mapSize.x; x++)
-        //    {
-        //        int quadIndex = y * mapSize.x + x;
-        //        float quadProportionalHeight = data.Vertices[quadIndex].y/maxHeight;
-
-        //        for(int py = 0; py< pixelsPerQuad; py++)
-        //        {
-        //            for(int px = 0; px< pixelsPerQuad; px++)
-        //            {
-        //                int pixelIndex = quadIndex * pixelsPerQuad*pixelsPerQuad + py * pixelsPerQuad + px;
-
-        //                //TODO: Lerp colores dentro del quad
-
-        //                if (_mode == DrawMode.Noise)
-        //                    colorArray[pixelIndex] = Color.Lerp(Color.black, Color.white, quadProportionalHeight);
-        //                else
-        //                    colorArray[pixelIndex] = HeightGradient.Evaluate(quadProportionalHeight);
-        //            }
-        //        }
-        //    }
-        //}
-
-        Vector2Int imageSize = new Vector2Int((mapSize.x-1) * pixelsPerQuad, (mapSize.y-1) * pixelsPerQuad);
+        Vector2Int imageSize = new Vector2Int((mapSize.x) * pixelsPerQuad, (mapSize.y) * pixelsPerQuad);
 
         for (int y = 0; y < imageSize.y; y++)
         {
@@ -154,15 +157,15 @@ public class MapView : MonoBehaviour
                 int quadX = x/pixelsPerQuad;
                 int quadY = y/pixelsPerQuad;
                 float margin = 1f / pixelsPerQuad / 2f;
-                Vector2 quadUV = new Vector2(x%pixelsPerQuad, y%pixelsPerQuad)/pixelsPerQuad + new Vector2(margin,margin);
+                Vector2 quadUV = new Vector2(x % pixelsPerQuad, y % pixelsPerQuad) / pixelsPerQuad + new Vector2(margin,margin);
 
-                float height;
-                float h00 = data.Vertices[quadY*mapSize.x + quadX].y;
-                float h10 = data.Vertices[quadY*mapSize.x + quadX+1].y;
-                float h01 = data.Vertices[(quadY+1)*mapSize.x + quadX].y;
-                float h11 = data.Vertices[(quadY+1)*mapSize.x + quadX+1].y;
+                //TODO:Fix vertices que se tienen en cuenta para hacer interpolacion
 
-                height = Mathf.Lerp(Mathf.Lerp(h00, h10, quadUV.x), Mathf.Lerp(h01, h11, quadUV.x), quadUV.y)/maxHeight;
+                float h00 = data.Vertices[(quadY*(mapSize.x+1)) + quadX].y;
+                float h10 = data.Vertices[(quadY*(mapSize.x+1)) + quadX+1].y;
+                float h01 = data.Vertices[(quadY+1)*(mapSize.x+1) + quadX].y;
+                float h11 = data.Vertices[(quadY+1)*(mapSize.x+1) + quadX+1].y;
+                float height = Mathf.Lerp(Mathf.Lerp(h00, h10, quadUV.x), Mathf.Lerp(h01, h11, quadUV.x), quadUV.y)/maxHeight;
                 
                 if (_mode == DrawMode.Noise)
                     colorArray[pixelIndex] = Color.Lerp(Color.black, Color.white, height);
@@ -175,7 +178,7 @@ public class MapView : MonoBehaviour
     }
 
     /// <summary>
-    /// Coloca la textura introducida en el en render
+    /// Coloca la textura introducida en el renderer
     /// </summary>
     /// <param name="texture"></param>
     public void DrawTexture(Texture2D texture)

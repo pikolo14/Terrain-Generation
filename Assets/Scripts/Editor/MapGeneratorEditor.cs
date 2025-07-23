@@ -30,7 +30,7 @@ public class MapGeneratorEditor : Editor {
         {
             var mapView = FindObjectOfType<MapView>();
             mapView.PrepareTerrainTexture(mapGen.MeshData, mapGen.MapSize, mapGen.HeightMultiplier);
-            mapView.RefreshTexture();
+            mapView.RefreshMapTexture();
         }
     }
 }
