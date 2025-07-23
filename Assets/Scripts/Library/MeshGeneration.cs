@@ -4,7 +4,7 @@ using UnityEngine;
 
 public static class MeshGeneration
 {
-    public static List<TerrainChunk> GenerateTerrainChunks(in float[,] heightMap, Vector2Int chunkMaxQuadsSize, float heightMultiplier, AnimationCurve heightCurve)
+    public static List<TerrainChunk> GenerateTerrainChunks(in float[,] heightMap, Vector2Int chunkMaxQuadsSize, float heightMultiplier, AnimationCurve heightCurve, Transform chunksParent)
     {
         int width = heightMap.GetLength(0)-1;
         int height = heightMap.GetLength(1)-1;
@@ -26,19 +26,23 @@ public static class MeshGeneration
                 chunkQuadsSize.Clamp(Vector2Int.zero, chunkMaxQuadsSize);
                 Vector3 chunkPosition = new Vector3(chunkMapQuad.x - midWidth, 0, chunkMapQuad.y - midHeight);
 
-                chunks.Add(GenerateTerrainChunk(in heightMap, chunkPosition, chunkCell, chunkMapQuad, chunkQuadsSize, chunkMaxQuadsSize, heightMultiplier, heightCurve));
+                chunks.Add(GenerateTerrainChunk(in heightMap, chunkPosition, chunkCell, chunkMapQuad, chunkQuadsSize, chunkMaxQuadsSize, heightMultiplier, heightCurve, chunksParent));
             }
         }
 
         return chunks;
     }
 
-    private static TerrainChunk GenerateTerrainChunk(in float[,] fullHeightMap, Vector3 chunkPosition, Vector2Int chunkCell, Vector2Int chunkMapQuad, Vector2Int chunkQuadsSize, Vector2Int chunkMaxQuadsMaxSize, float heightMultiplier, AnimationCurve heightCurve)
+    private static TerrainChunk GenerateTerrainChunk(in float[,] fullHeightMap, Vector3 chunkPosition, Vector2Int chunkCell, Vector2Int chunkMapQuad, Vector2Int chunkQuadsSize, Vector2Int chunkMaxQuadsMaxSize, float heightMultiplier, AnimationCurve heightCurve, Transform parent)
     {
         int width = chunkQuadsSize.x;
         int height = chunkQuadsSize.y;
-        
-        TerrainChunk chunk = new TerrainChunk(chunkQuadsSize, chunkCell, chunkMapQuad);
+
+        //Generar malla con textura de cada chunk
+        GameObject meshGO = new GameObject("Chunk " + chunkCell);
+        meshGO.transform.parent = parent;
+        TerrainChunk chunk = meshGO.AddComponent<TerrainChunk>();
+        chunk.Initialize(chunkQuadsSize, chunkCell, chunkMapQuad);
 
         //Asignar los vértices de la malla y los id de vertices que forman cada triangulo
         for (int y = 0, vertexId = 0; y <= height; y++)
@@ -61,6 +65,8 @@ public static class MeshGeneration
                 }
             }
         }
+
+        chunk.UpdateMesh();
 
         return chunk;
     }
