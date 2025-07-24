@@ -37,7 +37,7 @@ public class MapGenerator : MonoBehaviour
 	[ExecuteAlways]
     private void Awake()
     {
-		//PrepareComponents();
+		PrepareComponents();
     }
 
     /// <summary>

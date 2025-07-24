@@ -74,11 +74,11 @@ public class NodePathsGenerator : MonoBehaviour
         GenerateNodePoints(mapSize, mapOrigin, heightMultiplier);
         GenerateNodePathsConnections();
 
-        if(PathStyle == PathDrawStyle.TangentContinuousCurveSimple || PathStyle == PathDrawStyle.TangentContinuousCurveSectioned)
+        if (PathStyle == PathDrawStyle.TangentContinuousCurveSimple || PathStyle == PathDrawStyle.TangentContinuousCurveSectioned)
         {
             PrepareTangentContinuousCurvePaths();
 
-            if(PathStyle == PathDrawStyle.TangentContinuousCurveSectioned)
+            if (PathStyle == PathDrawStyle.TangentContinuousCurveSectioned)
                 GenerateNodePathsSections(SectionsPerLevel, RecursivityLevels);
         }
 
@@ -157,11 +157,11 @@ public class NodePathsGenerator : MonoBehaviour
         {
             var lineGO = Instantiate(NodePathPrefab, transform);
             NodePath path = lineGO.AddComponent<NodePath>();
-            path.P1 = GetNodePointInPosition(edge.v.position.ToVector2());
-            path.P2 = GetNodePointInPosition(edge.prevEdge.v.position.ToVector2());
+            path.P1 = GetClosestNodePoint(edge.v.position.ToVector2());
+            path.P2 = GetClosestNodePoint(edge.prevEdge.v.position.ToVector2());
 
             //Evitar paths duplicados
-            if(path.P1 != null && path.P2 != null && !IsPathCreated(path.P1, path.P2))
+            if (path.P1 != null && path.P2 != null && !IsPathCreated(path.P1, path.P2))
             {
                 //Almacenar en cada punto los paths a los que pertenece
                 path.P1.Paths.Add(path);
@@ -182,7 +182,7 @@ public class NodePathsGenerator : MonoBehaviour
                 else
                     DestroyImmediate(lineGO);
             }
-        }        
+        }
     }
 
     /// <summary>
@@ -286,15 +286,32 @@ public class NodePathsGenerator : MonoBehaviour
         return false;
     }
 
-    private NodePoint GetNodePointInPosition(Vector2 position)
+    /// <summary>
+    /// Devuelve el nodo mas cercano a la posicion.
+    /// La solucion a priori seria obtener el nodo en la posicion exacta, pero con este método evitamos
+    /// el error de los float que va aumentando a medida que se aleja la posicion del 0
+    /// </summary>
+    /// <param name="position"></param>
+    /// <returns></returns>
+    private NodePoint GetClosestNodePoint(Vector2 position)
     {
-        foreach(var point in NodePoints)
+        NodePoint closestPoint = NodePoints[0];
+        float minDistance = float.PositiveInfinity;
+
+        //TODO: Optimizar esta manera de obtener los nodos
+        foreach (var point in NodePoints)
         {
-            if (point.Position2D == position)
-                return point;
+            float distance = Vector2.Distance(position, point.Position2D);
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                closestPoint = point;
+                if (distance == 0)
+                    break;
+            }
         }
 
-        return null;
+        return closestPoint;
     }
 
     #endregion
