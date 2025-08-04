@@ -1,0 +1,12 @@
+Copyright (c) 2025 Picodaddy
+
+This repository is released for educational and personal use only.  
+Any commercial use, including use in professional or published games, is strictly prohibited without prior written permission.
+
+Permission is granted to use, copy, modify, and distribute this code for personal, non-commercial purposes only.
+
+No rights are granted for commercial distribution, sublicensing, or use in commercial products.
+
+The use of this code for training, feeding, or improving artificial intelligence models or systems is strictly prohibited.
+
+All rights reserved.
